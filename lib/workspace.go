@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+// test
 var ignore = []string{".", "..", ".git"}
 
 type Workspace struct {
