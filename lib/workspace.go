@@ -24,7 +24,7 @@ func (w *Workspace) ListFiles() ([]string, error) {
 	}
 	for _, file := range files {
 		if utils.Contains[string](ignore, file.Name()) {
-			break
+			continue
 		}
 		result = append(result, file.Name())
 	}
