@@ -5,11 +5,18 @@ import (
 	"os"
 )
 
-// test
-var ignore = []string{".", "..", ".git"}
+var ignore = []string{".", "..", ".git", "test_script.sh", "git-from-scratch"}
 
 type Workspace struct {
 	pathname string
+}
+
+func (w *Workspace) ReadFile(file string) (string, error) {
+	str, err := os.ReadFile(file)
+	if err != nil {
+		return "", err
+	}
+	return (string)(str), err
 }
 
 func NewWorkSpace(pathname string) *Workspace {
