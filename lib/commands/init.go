@@ -8,18 +8,17 @@ import (
 
 var dirs = []string{"objects", "refs"}
 
-func RunInit(root_path, git_path string) {
+func RunInit(root_path, git_path string) error {
 	err := os.Mkdir(git_path, 0777)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "init - fatal: %v", err)
-		os.Exit(1)
+		return err
 	}
 	for _, dir := range dirs {
 		err := os.Mkdir(path.Join(git_path, dir), 0777)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "init - fatal: %v", err)
-			os.Exit(1)
+			return err
 		}
 	}
 	fmt.Printf("Initialized empty repository in %s\r\n", git_path)
+	return nil
 }

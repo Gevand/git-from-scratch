@@ -3,11 +3,10 @@ package commands
 import (
 	"fmt"
 	"geo-git/lib"
-	"os"
 	"path"
 )
 
-func RunCommit(root_path string) {
+func RunCommit(root_path string) error {
 
 	git_path := path.Join(root_path, ".git")
 	db_path := path.Join(git_path, "objects")
@@ -17,21 +16,27 @@ func RunCommit(root_path string) {
 
 	files, err := workspace.ListFiles()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "commit - fatal: %v\r\n", err)
-		return
+		return err
 	}
 	fmt.Println("Commit files", files)
+
+	tree_entries := []lib.Entry{}
 	for _, file := range files {
 		data, err := workspace.ReadFile(file)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "commit - fatal: %v\r\n", err)
-			return
+			return err
 		}
 		blob := lib.NewBlob(data)
-		err = database.Store(blob)
+		err = database.StoreBlob(blob)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "commit - fatal: %v\r\n", err)
-			return
+			return err
 		}
+		tree_entries = append(tree_entries, *lib.NewEntry(file, blob.Oid))
 	}
+	tree := lib.NewTree(tree_entries)
+	err = database.StoreTree(tree)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -16,7 +16,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "init failed, %v\r\n", err)
 			os.Exit(1)
 		}
-		commands.RunInit(root_path, path.Join(root_path, ".git"))
+		err = commands.RunInit(root_path, path.Join(root_path, ".git"))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "init failed, %v\r\n", err)
+			os.Exit(1)
+		}
 		break
 	case "commit":
 		root_path, err := os.Getwd()
@@ -24,7 +28,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "commit failed, %v\r\n", err)
 			os.Exit(1)
 		}
-		commands.RunCommit(root_path)
+		err = commands.RunCommit(root_path)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "commit failed, %v \r\n", err)
+			os.Exit(1)
+		}
 
 	default:
 		fmt.Fprintf(os.Stderr, "%v is not a known command\r\n", command)

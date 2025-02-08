@@ -14,6 +14,6 @@ echo "a" > "a.txt"
 echo "b" > "b.txt"
 ./git-from-scratch "commit"
 
-
+tree .git
 
 find . ! -name 'test_script.sh' -type f -exec rm -f {} +
