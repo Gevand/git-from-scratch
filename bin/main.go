@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"geo-git/lib/commands"
+	"geo-git/lib/database"
 	"os"
 	"path"
+	"time"
 )
 
 func main() {
@@ -28,7 +31,20 @@ func main() {
 			fmt.Fprintf(os.Stderr, "commit failed, %v\r\n", err)
 			os.Exit(1)
 		}
-		err = commands.RunCommit(root_path)
+		name := os.Getenv("GIT_AUTHOR_NAME")
+		email := os.Getenv("GIT_AUTHOR_EMAIL")
+		if name == "" || email == "" {
+			fmt.Fprintf(os.Stderr, "commit failed, %v \r\n", "need an author and email")
+			os.Exit(1)
+		}
+		author := database.NewAuthor(name, email, time.Now())
+		reader := bufio.NewReader(os.Stdin)
+		message, err := reader.ReadString('\n')
+		if message == "" {
+			fmt.Fprintf(os.Stderr, "commit failed, %v \r\n", "need a commit message")
+			os.Exit(1)
+		}
+		err = commands.RunCommit(root_path, author, message)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "commit failed, %v \r\n", err)
 			os.Exit(1)

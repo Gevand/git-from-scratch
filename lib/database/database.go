@@ -1,4 +1,4 @@
-package lib
+package database
 
 import (
 	"bytes"
@@ -22,34 +22,8 @@ type Database struct {
 	Pathname string
 }
 
-type Blob struct {
-	Data []byte
-	Oid  string
-	Type string
-}
-
-type Entry struct {
-	Name, Oid string
-}
-
-type Tree struct {
-	Entries []Entry
-}
-
-func NewBlob(data string) *Blob {
-	return &Blob{Data: []byte(data), Type: "blob"}
-}
-
 func NewDatabase(pathname string) *Database {
 	return &Database{Pathname: pathname}
-}
-
-func NewEntry(path, oid string) *Entry {
-	return &Entry{Name: path, Oid: oid}
-}
-
-func NewTree(entries []Entry) *Tree {
-	return &Tree{Entries: entries}
 }
 
 func (d *Database) StoreBlob(obj *Blob) error {
@@ -57,11 +31,29 @@ func (d *Database) StoreBlob(obj *Blob) error {
 	h := sha1.New()
 	h.Write([]byte(content))
 	obj.Oid = hex.EncodeToString(h.Sum(nil))
-	fmt.Println("Store", content, obj.Oid)
 	return d.WriteObject(obj.Oid, content)
 }
 
 func (d *Database) StoreTree(tree *Tree) error {
+	blob := NewBlob(tree.ToString())
+	blob.Type = "tree"
+	err := d.StoreBlob(blob)
+	if err != nil {
+		return err
+	}
+	tree.Oid = blob.Oid
+	return nil
+}
+
+func (d *Database) StoreCommit(commit *Commit) error {
+
+	blob := NewBlob(commit.ToString())
+	blob.Type = "commit"
+	err := d.StoreBlob(blob)
+	if err != nil {
+		return err
+	}
+	commit.Oid = blob.Oid
 	return nil
 }
 
