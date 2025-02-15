@@ -22,9 +22,14 @@ rm -rf ".git"
 echo "Generate files to stage"
 echo "a" > "a.txt"
 echo "b" > "b.txt"
-echo "My first Commit Message" | ./git-from-scratch "commit"
+echo "My First Commit Message" | ./git-from-scratch "commit"
+
+echo "c" > "c.txt"
+echo "My Second Commit Message" | ./git-from-scratch "commit"
 
 tree .git
+
+more .git/HEAD
 
 find . ! -name 'test_script.sh' -type f -exec rm -rf {} +
 rm -rf .git

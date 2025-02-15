@@ -15,6 +15,11 @@ func RunCommit(root_path string, author *db.Author, message string) error {
 
 	workspace := lib.NewWorkSpace(root_path)
 	database := db.NewDatabase(db_path)
+	refs := lib.NewRefs(git_path)
+	parent, err := refs.ReadHead()
+	if err != nil {
+		return err
+	}
 
 	files, err := workspace.ListFiles()
 	if err != nil {
@@ -43,8 +48,12 @@ func RunCommit(root_path string, author *db.Author, message string) error {
 
 	fmt.Println("tree:", tree.Oid)
 
-	commit := db.NewCommit(tree.Oid, *author, message)
+	commit := db.NewCommit(parent, tree.Oid, *author, message)
 	err = database.StoreCommit(commit)
+	if err != nil {
+		return err
+	}
+	err = refs.UpdateHead(commit.Oid)
 	if err != nil {
 		return err
 	}
