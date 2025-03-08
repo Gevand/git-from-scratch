@@ -21,7 +21,7 @@ func RunCommit(root_path string, author *db.Author, message string) error {
 		return err
 	}
 
-	files, err := workspace.ListFiles()
+	files, err := workspace.ListFiles(root_path)
 	if err != nil {
 		return err
 	}

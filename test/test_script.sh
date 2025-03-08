@@ -2,6 +2,7 @@
 
 #delete everything except the script
 rm -rf .git
+rm -rf d
 find . ! -name 'test_script.sh' -type f -exec rm -rf {} +
 unset GIT_AUTHOR_NAME
 unset GITH_AUTHOR_EMAIL
@@ -28,12 +29,18 @@ echo "My First Commit Message" | ./git-from-scratch "commit"
 echo "c" > "c.txt"
 echo "My Second Commit Message" | ./git-from-scratch "commit"
 
+mkdir "d"
+mkdir "d/e"
+echo  "f" > "d/e/f.txt"
+echo "My Third Commit Message" | ./git-from-scratch "commit"
+
 tree .git
 
 more .git/HEAD
 
 find . ! -name 'test_script.sh' -type f -exec rm -rf {} +
 rm -rf .git
+rm -rf d
 unset GIT_AUTHOR_NAME
 unset GITH_AUTHOR_EMAIL
 
