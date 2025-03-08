@@ -38,7 +38,13 @@ func RunCommit(root_path string, author *db.Author, message string) error {
 		if err != nil {
 			return err
 		}
-		tree_entries = append(tree_entries, *db.NewEntry(file, blob.Oid))
+		stats, err := os.Stat(file)
+		if err != nil {
+			return err
+		}
+		mode := stats.Mode().Perm()
+		entry := *db.NewEntry(file, blob.Oid, mode)
+		tree_entries = append(tree_entries, entry)
 	}
 	tree := db.NewTree(tree_entries)
 	err = database.StoreTree(tree)

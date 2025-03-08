@@ -22,6 +22,7 @@ rm -rf ".git"
 echo "Generate files to stage"
 echo "a" > "a.txt"
 echo "b" > "b.txt"
+chmod +x b.txt
 echo "My First Commit Message" | ./git-from-scratch "commit"
 
 echo "c" > "c.txt"

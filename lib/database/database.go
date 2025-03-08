@@ -59,6 +59,11 @@ func (d *Database) StoreCommit(commit *Commit) error {
 
 func (d *Database) WriteObject(oid, content string) error {
 	object_path := path.Join(d.Pathname, oid[:2], oid[2:])
+	_, err := os.Stat(object_path)
+	if !os.IsNotExist(err) {
+		return nil
+	}
+
 	dirname := filepath.Dir(object_path)
 	temp_path := path.Join(dirname, generateTempName())
 
