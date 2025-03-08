@@ -14,25 +14,25 @@ export GIT_AUTHOR_EMAIL="geo@balayan.com"
 
 echo "Buildling..."
 rm -rf "git-from-sratch"
-go build -o "git-from-scratch" ../bin/main.go
+go build -o "geo-git" ../bin/main.go
 
 echo "Running innit"
 rm -rf ".git"
-./git-from-scratch "init"
+./geo-git "init"
 
 echo "Generate files to stage"
 echo "a" > "a.txt"
 echo "b" > "b.txt"
 chmod +x b.txt
-echo "My First Commit Message" | ./git-from-scratch "commit"
+echo "My First Commit Message" | ./geo-git "commit"
 
 echo "c" > "c.txt"
-echo "My Second Commit Message" | ./git-from-scratch "commit"
+echo "My Second Commit Message" | ./geo-git "commit"
 
 mkdir "d"
 mkdir "d/e"
 echo  "f" > "d/e/f.txt"
-echo "My Third Commit Message" | ./git-from-scratch "commit"
+echo "My Third Commit Message" | ./geo-git "commit"
 
 tree .git
 
