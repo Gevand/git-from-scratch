@@ -37,7 +37,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "commit failed, %v \r\n", "need an author and email")
 			os.Exit(1)
 		}
-		author := database.NewAuthor(name, email, time.Now())
+		author := database.NewAuthor(name, email, time.Date(2021, 10, 1, 0, 0, 0, 0, time.Local))
 		reader := bufio.NewReader(os.Stdin)
 		message, err := reader.ReadString('\n')
 		if message == "" {

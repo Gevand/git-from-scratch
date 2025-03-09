@@ -1,13 +1,12 @@
 package lib
 
 import (
-	"fmt"
 	"geo-git/lib/utils"
 	"os"
 	"path/filepath"
 )
 
-var ignore = []string{".", "..", ".git", "test_script.sh", "git-from-scratch"}
+var ignore = []string{".", "..", ".git", "test_script.sh", "geo-git"}
 
 type Workspace struct {
 	pathname string
@@ -51,6 +50,5 @@ func (w *Workspace) ListFiles(path string) ([]string, error) {
 			result = append(result, relative_path)
 		}
 	}
-	fmt.Println("results: ", result)
 	return result, nil
 }

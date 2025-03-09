@@ -27,7 +27,7 @@ func RunCommit(root_path string, author *db.Author, message string) error {
 	}
 	fmt.Println("Commit files", files)
 
-	tree_entries := []db.Entry{}
+	tree_entries := []*db.Entry{}
 	for _, file := range files {
 		data, err := workspace.ReadFile(file)
 		if err != nil {
@@ -43,18 +43,25 @@ func RunCommit(root_path string, author *db.Author, message string) error {
 			return err
 		}
 		mode := stats.Mode().Perm()
-		entry := *db.NewEntry(file, blob.Oid, mode)
+		entry := db.NewEntry(file, blob.Oid, mode)
 		tree_entries = append(tree_entries, entry)
 	}
-	tree := db.NewTree(tree_entries)
-	err = database.StoreTree(tree)
+	root := db.NewTree("")
+	root.BuildTree(tree_entries)
+	err = root.Traverse(func(t *db.Tree) error {
+		err := database.StoreTree(t)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("tree:", tree.Oid)
+	fmt.Println("tree:", root.Oid)
 
-	commit := db.NewCommit(parent, tree.Oid, *author, message)
+	commit := db.NewCommit(parent, root.Oid, *author, message)
 	err = database.StoreCommit(commit)
 	if err != nil {
 		return err

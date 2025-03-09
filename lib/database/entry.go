@@ -1,15 +1,15 @@
 package database
 
 import (
-	"encoding/hex"
-	"fmt"
 	"os"
-	"sort"
+	"path/filepath"
+	"slices"
 )
 
 const (
 	REGULAR_MODE    = "100644"
 	EXECUTABLE_MODE = "100755"
+	DIRECTORY_MODE  = "040000"
 )
 
 type Entry struct {
@@ -20,22 +20,28 @@ type Entry struct {
 func NewEntry(path, oid string, mode os.FileMode) *Entry {
 	return &Entry{Name: path, Oid: oid, Mode: mode}
 }
-func (t *Tree) ToString() string {
-	return_value := ""
-	sort.Slice(t.Entries, func(i, j int) bool {
-		return t.Entries[i].Name < t.Entries[j].Name
-	})
-	for _, entry := range t.Entries {
-		string_mode := REGULAR_MODE
-		if entry.Mode&0111 != 0 {
-			string_mode = EXECUTABLE_MODE
-		}
 
-		temp_string := fmt.Sprintf("%v %v\000", string_mode, entry.Name)
-		oid_as_array := []byte(entry.Oid)
-		oid_as_hexstring := hex.EncodeToString(oid_as_array[:min(20, len(oid_as_array))])
-		return_value += temp_string
-		return_value += oid_as_hexstring
+func (e *Entry) ParentDirectories() []string {
+	subPath := e.Name
+	var result []string
+	for {
+		subPath = filepath.Clean(subPath)
+
+		dir, last := filepath.Split(subPath)
+		if last == "" {
+			if dir != "" {
+				result = append(result, dir)
+			}
+			break
+		}
+		result = append(result, last)
+
+		if dir == "" {
+			break
+		}
+		subPath = dir
 	}
-	return return_value
+
+	slices.Reverse(result)
+	return result[:len(result)-1]
 }

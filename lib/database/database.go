@@ -63,7 +63,6 @@ func (d *Database) WriteObject(oid, content string) error {
 	if !os.IsNotExist(err) {
 		return nil
 	}
-
 	dirname := filepath.Dir(object_path)
 	temp_path := path.Join(dirname, generateTempName())
 
@@ -92,7 +91,7 @@ func (d *Database) WriteObject(oid, content string) error {
 	if err != nil {
 		return err
 	}
-
+	err = w.Close()
 	_, err = io.Copy(file, &buffer)
 	if err != nil {
 		return err
