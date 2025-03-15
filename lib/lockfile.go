@@ -10,13 +10,12 @@ var NoPermission = errors.New("no permissions")
 var StaleLock = errors.New("stale lock")
 
 type LockFile struct {
-	FilePath string
 	LockPath string
 	Lock     any
 }
 
-func NewLockFile(file_path, lock_path string) *LockFile {
-	return &LockFile{FilePath: file_path, LockPath: lock_path, Lock: nil}
+func NewLockFile(lock_path string) *LockFile {
+	return &LockFile{LockPath: lock_path, Lock: nil}
 }
 
 func (l *LockFile) HoldForUpdate() error {

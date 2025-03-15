@@ -12,13 +12,13 @@ import (
 
 func main() {
 	command := os.Args[1]
+	root_path, err := os.Getwd()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "init failed, %v\r\n", err)
+		os.Exit(1)
+	}
 	switch command {
 	case "init":
-		root_path, err := os.Getwd()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "init failed, %v\r\n", err)
-			os.Exit(1)
-		}
 		err = commands.RunInit(root_path, path.Join(root_path, ".git"))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "init failed, %v\r\n", err)
@@ -26,11 +26,6 @@ func main() {
 		}
 		break
 	case "commit":
-		root_path, err := os.Getwd()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "commit failed, %v\r\n", err)
-			os.Exit(1)
-		}
 		name := os.Getenv("GIT_AUTHOR_NAME")
 		email := os.Getenv("GIT_AUTHOR_EMAIL")
 		if name == "" || email == "" {
@@ -49,7 +44,10 @@ func main() {
 			fmt.Fprintf(os.Stderr, "commit failed, %v \r\n", err)
 			os.Exit(1)
 		}
-
+		break
+	case "add":
+		err = commands.RunAdd(root_path)
+		break
 	default:
 		fmt.Fprintf(os.Stderr, "%v is not a known command\r\n", command)
 		os.Exit(1)
