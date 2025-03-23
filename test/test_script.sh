@@ -34,12 +34,17 @@ mkdir "d/e"
 echo  "f" > "d/e/f.txt"
 echo "My Third Commit Message" | ./geo-git "commit"
 
-tree .git
 
 more .git/HEAD
 
 git cat-file -p HEAD^{tree}
 
+echo "g" > "g.txt"
+./geo-git "add" "g.txt"
+hexdump -C .git/index
+rm -f .git/index* ; git add g.txt ; hexdump -C .git/index
+
+tree .git
 find . ! -name 'test_script.sh' -type f -exec rm -rf {} +
 rm -rf .git
 rm -rf d

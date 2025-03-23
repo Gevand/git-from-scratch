@@ -47,6 +47,10 @@ func main() {
 		break
 	case "add":
 		err = commands.RunAdd(root_path)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "add failed, %v \r\n", err)
+			os.Exit(1)
+		}
 		break
 	default:
 		fmt.Fprintf(os.Stderr, "%v is not a known command\r\n", command)

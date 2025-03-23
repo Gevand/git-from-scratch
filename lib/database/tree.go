@@ -67,15 +67,13 @@ func (t *Tree) ToString() string {
 				string_mode = EXECUTABLE_MODE
 			}
 			temp_string := fmt.Sprintf("%v %v\000", string_mode, entry.Name)
-			oid_as_array := []byte(entry.Oid)
-			oid_as_hexstring := string(utils.PackHexaDecimal(oid_as_array))
+			oid_as_hexstring := string(utils.PackHexaDecimal(entry.Oid))
 			return_value += temp_string
 			return_value += oid_as_hexstring
 		case *Tree:
 			string_mode = DIRECTORY_MODE
 			temp_string := fmt.Sprintf("%v %v\000", string_mode, entry.Name)
-			oid_as_array := []byte(entry.Oid)
-			oid_as_hexstring := string(utils.PackHexaDecimal(oid_as_array))
+			oid_as_hexstring := string(utils.PackHexaDecimal(entry.Oid))
 			return_value += temp_string
 			return_value += oid_as_hexstring
 		}
