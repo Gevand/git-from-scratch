@@ -1,6 +1,8 @@
 package index
 
 import (
+	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"geo-git/lib/utils"
@@ -14,6 +16,7 @@ const (
 	EXECUTABLE_MODE = "0100755"
 	MAX_PATH_SIZE   = 0xfff
 	ENTRY_BLOCK     = 8
+	ENTRY_MIN_SIZE  = 64
 )
 
 type IndexEntry struct {
@@ -128,6 +131,52 @@ func (ie *IndexEntry) ToString() (string, error) {
 	}
 
 	return string(result), nil
+}
+
+func ParseEntry(data []byte) (*IndexEntry, error) {
+	//N10H40nZ*
+	//TODO: Create errors if the bytes passed in can't be parsed
+	n := 0
+	c_time := binary.BigEndian.Uint32(data[n : n+4])
+	n += 4
+	c_time_nsec := binary.BigEndian.Uint32(data[n : n+4])
+	n += 4
+	m_time := binary.BigEndian.Uint32(data[n : n+4])
+	n += 4
+	m_time_nsec := binary.BigEndian.Uint32(data[n : n+4])
+	n += 4
+	device := binary.BigEndian.Uint32(data[n : n+4])
+	n += 4
+	inode := binary.BigEndian.Uint32(data[n : n+4])
+	n += 4
+	mode := binary.BigEndian.Uint32(data[n : n+4])
+	n += 4
+	uid := binary.BigEndian.Uint32(data[n : n+4])
+	n += 4
+	gid := binary.BigEndian.Uint32(data[n : n+4])
+	n += 4
+	size := binary.BigEndian.Uint32(data[n : n+4])
+	n += 4
+	oid := hex.EncodeToString(data[n : n+20])
+	n += 20
+	flags := binary.BigEndian.Uint16(data[n : n+2])
+	n += 2
+	path := string(data[n:])
+	return &IndexEntry{
+		Oid:        oid,
+		Uid:        uid,
+		Gid:        gid,
+		Size:       int64(size),
+		Mode:       mode,
+		Inode:      uint64(inode),
+		Device:     uint64(device),
+		Ctime:      time.Unix(int64(c_time), int64(c_time_nsec)),
+		Ctime_Nsec: int64(c_time_nsec),
+		Mtime:      time.Unix(int64(m_time), int64(m_time_nsec)),
+		Mtime_Nsec: int64(m_time_nsec),
+		Flags:      int(flags),
+		Path:       path,
+	}, nil
 }
 
 func timespecToTime(ts syscall.Timespec) time.Time {
