@@ -26,6 +26,22 @@ func NewWorkSpace(pathname string) *Workspace {
 
 func (w *Workspace) ListFiles(path string) ([]string, error) {
 	result := []string{}
+	fileinfo, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+
+	//single file
+	if !fileinfo.IsDir() {
+		relative_path, err := filepath.Rel(w.pathname, path)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, relative_path)
+		return result, nil
+	}
+
+	//directory
 	files, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
@@ -34,6 +50,8 @@ func (w *Workspace) ListFiles(path string) ([]string, error) {
 		if utils.Contains[string](ignore, file.Name()) {
 			continue
 		}
+
+		// Could possibly recurse regardless of file type
 		if file.IsDir() {
 			temp_path := filepath.Join(path, file.Name())
 			temp_results, err := w.ListFiles(temp_path)

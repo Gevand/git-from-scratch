@@ -6,6 +6,7 @@ import (
 	"geo-git/lib/utils"
 	"hash"
 	"os"
+	"sort"
 )
 
 type Index struct {
@@ -13,6 +14,7 @@ type Index struct {
 	Entries  map[string]*ind.IndexEntry
 	lockfile *LockFile
 	digest   hash.Hash
+	keys     []string
 }
 
 func NewIndex(path string) *Index {
@@ -20,6 +22,7 @@ func NewIndex(path string) *Index {
 		path:     path,
 		Entries:  map[string]*ind.IndexEntry{},
 		lockfile: NewLockFile(path),
+		keys:     []string{},
 	}
 }
 
@@ -29,6 +32,7 @@ func (i *Index) Add(path, oid string, stat os.FileInfo) error {
 		return err
 	}
 	i.Entries[path] = index_entry
+	i.keys = append(i.keys, path)
 	return err
 }
 
@@ -53,7 +57,10 @@ func (i *Index) WriteUpdates() (bool, error) {
 	}
 	header = append(header, entries_length_as_bytes...)
 	i.Write(header)
-	for _, entry := range i.Entries {
+	//keys = path, and need to be sorted
+	sort.Strings(i.keys)
+	for _, key := range i.keys {
+		entry := i.Entries[key]
 		str, err := entry.ToString()
 		if err != nil {
 			return false, err
