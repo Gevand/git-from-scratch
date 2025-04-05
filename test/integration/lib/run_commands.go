@@ -1,13 +1,11 @@
 package integration_test_lib
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 )
 
 func RunInit(folder string) {
-	fmt.Println("Initializing in folder", folder)
 	err := os.Mkdir(folder, 777)
 	if err != nil {
 		panic(err)

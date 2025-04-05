@@ -28,3 +28,17 @@ func TestInit(t *testing.T) {
 		t.Errorf("Folder refs does not exist")
 	}
 }
+
+func TestInit_AlreadyInitExists(t *testing.T) {
+	folder := lib.GenerateRandomString()
+	lib.RunInit(folder)
+	defer func() {
+		if r := recover(); r != nil {
+			t.Log("Test pased, panic was caught as expected")
+		} else {
+			t.Errorf("Expected the second call to RunInit() to fail")
+		}
+		lib.CleanUpFolder(folder)
+	}()
+	lib.RunInit(folder)
+}

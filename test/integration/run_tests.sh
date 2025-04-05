@@ -8,7 +8,7 @@ go build -o "geo-git" ../../bin/main.go
 chmod 777 geo-git
 export PATH=$PATH:$(pwd)
 
-go test &
+go test -v &
 program_pid=$!
 wait $program_pid
 rm -rf "geo-git"
