@@ -28,7 +28,7 @@ func (c *Checksum) Read(size int) ([]byte, error) {
 		return nil, err
 	}
 	if n != size {
-		return nil, errors.New("Unexcpted end-of-file while reading index")
+		return nil, errors.New("Unexpected end-of-file while reading index")
 	}
 
 	c.Digest.Write(data)

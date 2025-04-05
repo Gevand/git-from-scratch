@@ -14,7 +14,7 @@ export GIT_AUTHOR_EMAIL="geo@balayan.com"
 
 echo "Buildling..."
 rm -rf "git-from-sratch"
-go build -o "geo-git" ../bin/main.go
+go build -o "geo-git" ../../bin/main.go
 
 echo "Running innit"
 rm -rf ".git"
