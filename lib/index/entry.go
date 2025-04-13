@@ -4,9 +4,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"geo-git/lib/utils"
 	"os"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -111,7 +111,6 @@ func (ie *IndexEntry) ToString() (string, error) {
 
 	//H20 -> OID packed from 40 bytes to 20
 	temp = utils.PackHexaDecimal(ie.Oid)
-	fmt.Println("OID", ie.Oid, len(ie.Oid))
 	result = append(result, temp...)
 
 	//n -> 16 bit int
@@ -161,7 +160,8 @@ func ParseEntry(data []byte) (*IndexEntry, error) {
 	n += 20
 	flags := binary.BigEndian.Uint16(data[n : n+2])
 	n += 2
-	path := string(data[n:])
+	//need to trim the "padded" 0 bytes at the end
+	path := strings.TrimRight(string(data[n:]), "\000")
 	return &IndexEntry{
 		Oid:        oid,
 		Uid:        uid,

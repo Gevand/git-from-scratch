@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	ind "geo-git/lib/index"
 	"geo-git/lib/utils"
 	"hash"
@@ -127,8 +128,9 @@ func (i *Index) Load() error {
 		return err
 	}
 
-	reader := ind.NewChecksum(*index_file)
+	reader := ind.NewChecksum(index_file)
 	count, err := i.ReadHeader(reader)
+	fmt.Println("Count should be ", count)
 	if err != nil {
 		return err
 	}
@@ -143,6 +145,7 @@ func (i *Index) Load() error {
 }
 
 func (i *Index) ReadHeader(reader *ind.Checksum) (int, error) {
+	fmt.Println("Reading header", HEADER_SIZE)
 	data, err := reader.Read(HEADER_SIZE)
 	if err != nil {
 		return 0, err
@@ -164,15 +167,19 @@ func (i *Index) ReadHeader(reader *ind.Checksum) (int, error) {
 func (i *Index) ReadEntries(reader *ind.Checksum, count int) error {
 	for c := 0; c < count; c++ {
 		entry_bytes := []byte{}
+		entry_block, err := reader.Read(ind.ENTRY_MIN_SIZE)
+		if err != nil {
+			return err
+		}
 		for {
-			entry_block := make([]byte, ind.ENTRY_MIN_SIZE)
-			_, err := reader.File.Read(entry_block)
-			if err != nil {
-				return err
-			}
+
 			entry_bytes = append(entry_bytes, entry_block...)
 			if entry_bytes[len(entry_bytes)-1] == 0 {
 				break
+			}
+			entry_block, err = reader.Read(ind.ENTRY_BLOCK)
+			if err != nil {
+				return err
 			}
 		}
 		entry, err := ind.ParseEntry(entry_bytes)

@@ -46,7 +46,6 @@ func RunAdd(root_path string) error {
 			if err != nil {
 				return err
 			}
-			fmt.Print("Add blob", blob.Data, string(blob.Data))
 			err = database.StoreBlob(blob)
 			if err != nil {
 				return err

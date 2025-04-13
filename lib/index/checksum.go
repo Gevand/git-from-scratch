@@ -11,18 +11,18 @@ import (
 const CHECKSUM_SIZE = 20
 
 type Checksum struct {
-	File   os.File
+	File   *os.File
 	Digest hash.Hash
 }
 
-func NewChecksum(file os.File) *Checksum {
+func NewChecksum(file *os.File) *Checksum {
 	return &Checksum{
 		File: file, Digest: sha1.New(),
 	}
 }
 
 func (c *Checksum) Read(size int) ([]byte, error) {
-	data := []byte{}
+	data := make([]byte, size)
 	n, err := c.File.Read(data)
 	if err != nil {
 		return nil, err

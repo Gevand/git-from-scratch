@@ -60,19 +60,13 @@ func (t *Tree) Traverse(execute func(*Tree) error) error {
 func (t *Tree) ToString() string {
 	return_value := ""
 	for _, interface_entry := range t.Entries {
-		string_mode := REGULAR_MODE
 		switch entry := interface_entry.(type) {
 		case *Entry:
-			if entry.Mode&0111 != 0 {
-				string_mode = EXECUTABLE_MODE
-			}
-			temp_string := fmt.Sprintf("%v %v\000", string_mode, entry.Name)
+			temp_string := fmt.Sprintf("%v %v", fmt.Sprintf("%06o", entry.Mode), entry.Name)
 			oid_as_hexstring := string(utils.PackHexaDecimal(entry.Oid))
-			return_value += temp_string
-			return_value += oid_as_hexstring
+			return_value = fmt.Sprintf("%s\000%s", temp_string, oid_as_hexstring)
 		case *Tree:
-			string_mode = DIRECTORY_MODE
-			temp_string := fmt.Sprintf("%v %v\000", string_mode, entry.Name)
+			temp_string := fmt.Sprintf("%v %v\000", fmt.Sprintf("%06o", DIRECTORY_MODE), entry.Name)
 			oid_as_hexstring := string(utils.PackHexaDecimal(entry.Oid))
 			return_value += temp_string
 			return_value += oid_as_hexstring

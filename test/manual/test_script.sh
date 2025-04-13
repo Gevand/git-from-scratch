@@ -1,5 +1,5 @@
 #!/bin/sh
-
+alias inflate='ruby -r zlib -e "STDOUT.write Zlib::Inflate.inflate(STDIN.read)"'
 #delete everything except the script
 rm -rf .git
 rm -rf d
@@ -24,26 +24,27 @@ echo "Generate files to stage"
 echo "a" > "a.txt"
 echo "b" > "b.txt"
 chmod +x b.txt
+
+./geo-git add a.txt b.txt
 echo "My First Commit Message" | ./geo-git "commit"
 
 echo "c" > "c.txt"
+./geo-git add .
 echo "My Second Commit Message" | ./geo-git "commit"
 
 mkdir "d"
 mkdir "d/e"
 echo  "f" > "d/e/f.txt"
+./geo-git add .
 echo "My Third Commit Message" | ./geo-git "commit"
 
-
 more .git/HEAD
-
 git cat-file -p HEAD^{tree}
+more .git/index
 
 echo "g" > "g.txt"
 echo "h" > "h.txt"
 ./geo-git "add" h.txt d g.txt
-hexdump -C .git/index
-rm -f .git/index* ; git add h.txt d g.txt; hexdump -C .git/index
 
 tree .git
 find . ! -name 'test_script.sh' -type f -exec rm -rf {} +

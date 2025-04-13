@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"geo-git/lib"
 	db "geo-git/lib/database"
+	"geo-git/lib/utils"
 	"os"
 	"path"
 )
@@ -12,39 +13,24 @@ func RunCommit(root_path string, author *db.Author, message string) error {
 
 	git_path := path.Join(root_path, ".git")
 	db_path := path.Join(git_path, "objects")
+	index_path := path.Join(git_path, "index")
 
-	workspace := lib.NewWorkSpace(root_path)
+	index := lib.NewIndex(index_path)
+	err := index.Load()
+	if err != nil {
+		return err
+	}
 	database := db.NewDatabase(db_path)
 	refs := lib.NewRefs(git_path)
+
 	parent, err := refs.ReadHead()
 	if err != nil {
 		return err
 	}
 
-	files, err := workspace.ListFiles(root_path)
-	if err != nil {
-		return err
-	}
-	fmt.Println("Commit files", files)
-
 	tree_entries := []*db.Entry{}
-	for _, file := range files {
-		data, err := workspace.ReadFile(file)
-		if err != nil {
-			return err
-		}
-		blob := db.NewBlob(data)
-		err = database.StoreBlob(blob)
-		if err != nil {
-			return err
-		}
-		stats, err := os.Stat(file)
-		if err != nil {
-			return err
-		}
-		mode := stats.Mode().Perm()
-		entry := db.NewEntry(file, blob.Oid, mode)
-		tree_entries = append(tree_entries, entry)
+	for _, index_entry := range utils.SliceFromMap(index.Entries) {
+		tree_entries = append(tree_entries, db.NewEntry(index_entry.Path, index_entry.Oid, os.FileMode(index_entry.Mode)))
 	}
 	root := db.NewTree("")
 	root.BuildTree(tree_entries)

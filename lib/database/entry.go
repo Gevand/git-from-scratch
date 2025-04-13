@@ -7,9 +7,7 @@ import (
 )
 
 const (
-	REGULAR_MODE    = "100644"
-	EXECUTABLE_MODE = "100755"
-	DIRECTORY_MODE  = "040000"
+	DIRECTORY_MODE = 040000
 )
 
 type Entry struct {
