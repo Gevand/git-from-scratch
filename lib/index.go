@@ -9,6 +9,7 @@ import (
 	"geo-git/lib/utils"
 	"hash"
 	"os"
+	"slices"
 	"sort"
 )
 
@@ -24,6 +25,7 @@ type Index struct {
 	lockfile *LockFile
 	digest   hash.Hash
 	keys     []string
+	parents  map[string][]string
 	changed  bool
 }
 
@@ -33,6 +35,7 @@ func NewIndex(path string) *Index {
 		Entries:  map[string]*ind.IndexEntry{},
 		lockfile: NewLockFile(path),
 		keys:     []string{},
+		parents:  map[string][]string{},
 		changed:  false,
 	}
 }
@@ -42,14 +45,51 @@ func (i *Index) Add(path, oid string, stat os.FileInfo) error {
 	if err != nil {
 		return err
 	}
+	i.DiscardConflicts(index_entry)
 	i.StoreEntry(index_entry)
 	i.changed = true
 	return err
 }
 
+func (i *Index) DiscardConflicts(entry *ind.IndexEntry) {
+	for _, dirname := range entry.ParentDirectories() {
+		i.removeEntry(dirname)
+	}
+	i.removeChildren(entry.Path)
+}
+
+func (i *Index) removeChildren(path string) {
+	paths, ok := i.parents[path]
+	if !ok {
+		return
+	}
+	for _, p := range paths {
+		i.removeEntry(p)
+	}
+}
+
+func (i *Index) removeEntry(path string) {
+	entry, ok := i.Entries[path]
+	if !ok {
+		return
+	}
+	i.keys = slices.DeleteFunc(i.keys, func(s string) bool { return s == entry.Path })
+	delete(i.Entries, entry.Path)
+	for _, dirname := range entry.ParentDirectories() {
+		i.parents[dirname] = slices.DeleteFunc(i.parents[dirname], func(s string) bool { return s == entry.Path })
+		if len(i.parents[dirname]) == 0 {
+			delete(i.parents, dirname)
+		}
+	}
+}
+
 func (i *Index) StoreEntry(entry *ind.IndexEntry) {
 	i.Entries[entry.Path] = entry
 	i.keys = append(i.keys, entry.Path)
+
+	for _, dirname := range entry.ParentDirectories() {
+		i.parents[dirname] = append(i.parents[dirname], entry.Path)
+	}
 }
 
 func (i *Index) WriteUpdates() (bool, error) {

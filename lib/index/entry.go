@@ -6,6 +6,8 @@ import (
 	"errors"
 	"geo-git/lib/utils"
 	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -181,4 +183,29 @@ func ParseEntry(data []byte) (*IndexEntry, error) {
 
 func timespecToTime(ts syscall.Timespec) time.Time {
 	return time.Unix(ts.Sec, ts.Nsec)
+}
+
+func (ie *IndexEntry) ParentDirectories() []string {
+	subPath := ie.Path
+	var result []string
+	for {
+		subPath = filepath.Clean(subPath)
+
+		dir, last := filepath.Split(subPath)
+		if last == "" {
+			if dir != "" {
+				result = append(result, dir)
+			}
+			break
+		}
+		result = append(result, last)
+
+		if dir == "" {
+			break
+		}
+		subPath = dir
+	}
+
+	slices.Reverse(result)
+	return result[:len(result)-1]
 }
