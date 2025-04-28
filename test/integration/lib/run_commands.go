@@ -26,6 +26,16 @@ func RunGitCommand(folder string, arguments ...string) {
 	}
 }
 
+func RunGitCommandWithOutput(folder string, arguments ...string) string {
+	cmd := exec.Command("geo-git", arguments...)
+	cmd.Dir = folder
+	out, err := cmd.Output()
+	if err != nil {
+		panic(err)
+	}
+	return string(out)
+}
+
 func CleanUpFolder(folder string) {
 	err := os.RemoveAll(folder)
 	if err != nil {
