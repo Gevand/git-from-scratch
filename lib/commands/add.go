@@ -5,21 +5,12 @@ import (
 	"geo-git/lib"
 	db "geo-git/lib/database"
 	"os"
-	"path"
 	"path/filepath"
 )
 
-func RunAdd(root_path string) error {
-	git_path := path.Join(root_path, ".git")
-	db_path := path.Join(git_path, "objects")
-	index_path := path.Join(git_path, "index")
-
-	workspace := lib.NewWorkSpace(root_path)
-	database := db.NewDatabase(db_path)
-	index := lib.NewIndex(index_path)
-
-	for i := 2; i < len(os.Args); i++ {
-		path_from_arg := os.Args[i]
+func RunAdd(repo *lib.Respository, cmd *Command) error {
+	for _, arg := range cmd.Args {
+		path_from_arg := arg
 		if !filepath.IsAbs(path_from_arg) {
 			absolute, err := filepath.Abs(path_from_arg)
 			if err != nil {
@@ -29,14 +20,14 @@ func RunAdd(root_path string) error {
 		}
 
 		//expand the path if its a folder
-		all_paths, err := workspace.ListFiles(path_from_arg)
+		all_paths, err := repo.Workspace.ListFiles(path_from_arg)
 		if err != nil {
 			return err
 		}
 
 		for _, path := range all_paths {
 			fmt.Println("Running add with ", path)
-			data, err := workspace.ReadFile(path)
+			data, err := repo.Workspace.ReadFile(path)
 			if err != nil {
 				return err
 			}
@@ -46,17 +37,17 @@ func RunAdd(root_path string) error {
 			if err != nil {
 				return err
 			}
-			err = database.StoreBlob(blob)
+			err = repo.Database.StoreBlob(blob)
 			if err != nil {
 				return err
 			}
-			err = index.Add(path, blob.Oid, stat)
+			err = repo.Index.Add(path, blob.Oid, stat)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	_, err := index.WriteUpdates()
+	_, err := repo.Index.WriteUpdates()
 	return err
 }

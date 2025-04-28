@@ -152,13 +152,13 @@ func (i *Index) FinishWrite() error {
 	return i.lockfile.Commit()
 }
 
-func (i *Index) LoadForUpdate() (bool, error) {
+func (i *Index) LoadForUpdate() error {
 	err := i.lockfile.HoldForUpdate()
 	if err == nil {
 		err := i.Load()
-		return err == nil, err
+		return err
 	}
-	return false, nil
+	return nil
 }
 
 func (i *Index) Load() error {

@@ -48,6 +48,7 @@ echo "h" > "h.txt"
 ./geo-git "add" "file_that_does_not_exist.txt"
 
 tree .git
+more .git/HEAD
 find . ! -name 'test_script.sh' -type f -exec rm -rf {} +
 rm -rf .git
 rm -rf d

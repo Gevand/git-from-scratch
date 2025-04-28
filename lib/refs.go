@@ -14,12 +14,18 @@ func NewRefs(pathName string) *Refs {
 }
 
 func (r *Refs) UpdateHead(oid string) error {
-	file, err := os.OpenFile(r.GetHeadPath(), os.O_WRONLY|os.O_CREATE, 0777)
-	defer file.Close()
+	//TODO: This should append to the file, not simply add a new head
+	lockfile := NewLockFile(r.GetHeadPath())
+	err := lockfile.HoldForUpdate()
 	if err != nil {
 		return err
 	}
-	file.Write([]byte(oid))
+	lockfile.Write([]byte(oid))
+	lockfile.Write([]byte("\n"))
+	err = lockfile.Commit()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
