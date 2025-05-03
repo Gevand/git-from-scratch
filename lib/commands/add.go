@@ -9,6 +9,7 @@ import (
 )
 
 func RunAdd(repo *lib.Respository, cmd *Command) error {
+	repo.Index.LoadForUpdate()
 	for _, arg := range cmd.Args {
 		path_from_arg := arg
 		if !filepath.IsAbs(path_from_arg) {

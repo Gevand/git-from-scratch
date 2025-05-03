@@ -20,34 +20,14 @@ echo "Running innit"
 rm -rf ".git"
 ./geo-git "init"
 
-echo "Generate files to stage"
 echo "a" > "a.txt"
+./geo-git add "a.txt"
+echo "a added" | ./geo-git "commit"
+
 echo "b" > "b.txt"
-chmod +x b.txt
+./geo-git add "b.txt"
+./geo-git status
 
-./geo-git add a.txt b.txt
-echo "My First Commit Message" | ./geo-git "commit"
-
-echo "c" > "c.txt"
-./geo-git add .
-echo "My Second Commit Message" | ./geo-git "commit"
-
-mkdir "d"
-mkdir "d/e"
-echo  "f" > "d/e/f.txt"
-./geo-git add .
-echo "My Third Commit Message" | ./geo-git "commit"
-
-more .git/HEAD
-git cat-file -p HEAD^{tree}
-more .git/index
-
-echo "g" > "g.txt"
-echo "h" > "h.txt"
-./geo-git "add" h.txt d g.txt
-./geo-git "status"
-
-./geo-git "add" "file_that_does_not_exist.txt"
 
 tree .git
 more .git/HEAD
@@ -56,4 +36,3 @@ rm -rf .git
 rm -rf d
 unset GIT_AUTHOR_NAME
 unset GITH_AUTHOR_EMAIL
-
