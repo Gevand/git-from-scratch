@@ -9,7 +9,7 @@ import (
 var ignore = []string{".", "..", ".git", "test_script.sh", "geo-git"}
 
 type Workspace struct {
-	pathname string
+	Pathname string
 }
 
 func (w *Workspace) ReadFile(file string) (string, error) {
@@ -21,7 +21,7 @@ func (w *Workspace) ReadFile(file string) (string, error) {
 }
 
 func NewWorkSpace(pathname string) *Workspace {
-	return &Workspace{pathname: pathname}
+	return &Workspace{Pathname: pathname}
 }
 
 func (w *Workspace) ListFiles(path string) ([]string, error) {
@@ -33,7 +33,7 @@ func (w *Workspace) ListFiles(path string) ([]string, error) {
 
 	//single file
 	if !fileinfo.IsDir() {
-		relative_path, err := filepath.Rel(w.pathname, path)
+		relative_path, err := filepath.Rel(w.Pathname, path)
 		if err != nil {
 			return nil, err
 		}
@@ -61,7 +61,7 @@ func (w *Workspace) ListFiles(path string) ([]string, error) {
 			result = append(result, temp_results...)
 		} else {
 			full_path := filepath.Join(path, file.Name())
-			relative_path, err := filepath.Rel(w.pathname, full_path)
+			relative_path, err := filepath.Rel(w.Pathname, full_path)
 			if err != nil {
 				return nil, err
 			}

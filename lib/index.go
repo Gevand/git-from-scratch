@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	ind "geo-git/lib/index"
 	"geo-git/lib/utils"
 	"hash"
@@ -92,6 +91,11 @@ func (i *Index) StoreEntry(entry *ind.IndexEntry) {
 	}
 }
 
+func (i *Index) IsEntryTracked(path string) bool {
+	_, ok := i.Entries[path]
+	return ok
+}
+
 func (i *Index) WriteUpdates() (bool, error) {
 	err := i.lockfile.HoldForUpdate()
 	if err != nil {
@@ -162,15 +166,18 @@ func (i *Index) LoadForUpdate() error {
 }
 
 func (i *Index) Load() error {
+
 	index_file, err := os.Open(i.path)
 	defer index_file.Close()
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return err
 	}
 
 	reader := ind.NewChecksum(index_file)
 	count, err := i.ReadHeader(reader)
-	fmt.Println("Count should be ", count)
 	if err != nil {
 		return err
 	}
@@ -185,7 +192,6 @@ func (i *Index) Load() error {
 }
 
 func (i *Index) ReadHeader(reader *ind.Checksum) (int, error) {
-	fmt.Println("Reading header", HEADER_SIZE)
 	data, err := reader.Read(HEADER_SIZE)
 	if err != nil {
 		return 0, err

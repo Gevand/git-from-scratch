@@ -14,7 +14,6 @@ func NewRefs(pathName string) *Refs {
 }
 
 func (r *Refs) UpdateHead(oid string) error {
-	//TODO: This should append to the file, not simply add a new head
 	lockfile := NewLockFile(r.GetHeadPath())
 	err := lockfile.HoldForUpdate()
 	if err != nil {
