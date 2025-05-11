@@ -92,8 +92,9 @@ func (i *Index) StoreEntry(entry *ind.IndexEntry) {
 }
 
 func (i *Index) IsEntryTracked(path string) bool {
-	_, ok := i.Entries[path]
-	return ok
+	_, tracked_file := i.Entries[path]
+	_, tracked_parent := i.parents[path]
+	return tracked_file || tracked_parent
 }
 
 func (i *Index) WriteUpdates() (bool, error) {

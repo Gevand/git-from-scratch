@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"geo-git/lib"
 	db "geo-git/lib/database"
 	"os"
@@ -27,7 +26,6 @@ func RunAdd(repo *lib.Respository, cmd *Command) error {
 		}
 
 		for _, path := range all_paths {
-			fmt.Println("Running add with ", path)
 			data, err := repo.Workspace.ReadFile(path)
 			if err != nil {
 				return err

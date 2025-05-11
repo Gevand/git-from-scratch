@@ -25,6 +25,7 @@ echo "a" > "a.txt"
 echo "a added" | ./geo-git "commit"
 
 echo "b" > "b.txt"
+echo "untracked" > "untracked.txt"
 ./geo-git add "b.txt"
 ./geo-git status
 

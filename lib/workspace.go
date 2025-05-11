@@ -3,6 +3,7 @@ package lib
 import (
 	"geo-git/lib/utils"
 	"os"
+	"path"
 	"path/filepath"
 )
 
@@ -47,7 +48,7 @@ func (w *Workspace) ListFiles(path string) ([]string, error) {
 		return nil, err
 	}
 	for _, file := range files {
-		if utils.Contains[string](ignore, file.Name()) {
+		if utils.Contains(ignore, file.Name()) {
 			continue
 		}
 
@@ -69,4 +70,28 @@ func (w *Workspace) ListFiles(path string) ([]string, error) {
 		}
 	}
 	return result, nil
+}
+
+func (w *Workspace) ListDirs(dirname string) (map[string]os.FileInfo, error) {
+	stats := map[string]os.FileInfo{}
+	dir_path := path.Join(w.Pathname, dirname)
+	files, err := os.ReadDir(dir_path)
+	if err != nil {
+		return nil, err
+	}
+	for _, dir_entry := range files {
+		if utils.Contains(ignore, dir_entry.Name()) {
+			continue
+		}
+		relative_path, err := filepath.Rel(w.Pathname, path.Join(dir_path, dir_entry.Name()))
+		if err != nil {
+			return nil, err
+		}
+		stat, err := os.Stat(path.Join(w.Pathname, relative_path))
+		if err != nil {
+			return nil, err
+		}
+		stats[relative_path] = stat
+	}
+	return stats, nil
 }

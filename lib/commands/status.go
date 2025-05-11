@@ -3,6 +3,8 @@ package commands
 import (
 	"fmt"
 	"geo-git/lib"
+	"os"
+	"slices"
 	"sort"
 )
 
@@ -11,17 +13,66 @@ func RunStatus(repo *lib.Respository, cmd *Command) error {
 	if err != nil {
 		return err
 	}
-	files, err := repo.Workspace.ListFiles(repo.Workspace.Pathname)
-	sort.Strings(files)
+	untracked := []string{}
+	err = scanWorkspace(repo, "", &untracked)
 	if err != nil {
 		return err
 	}
-	for _, file := range files {
+	sort.Strings(untracked)
+	for _, file := range slices.Compact(untracked) {
+		fmt.Printf("?? %s\r\n", file)
+	}
+	return nil
+}
+
+func scanWorkspace(repo *lib.Respository, prefix string, untracked *[]string) error {
+	files, err := repo.Workspace.ListDirs(prefix)
+	if err != nil {
+		return err
+	}
+	for file, fileInfo := range files {
+		trackable, err := trackableFile(repo, file, fileInfo)
+		if err != nil {
+			return err
+		}
 		if repo.Index.IsEntryTracked(file) {
-			fmt.Printf("%s\r\n", file)
-		} else {
-			fmt.Printf("?? %s\r\n", file)
+			if fileInfo.IsDir() {
+				err := scanWorkspace(repo, file, untracked)
+				if err != nil {
+					return err
+				}
+			}
+		} else if trackable {
+			if fileInfo.IsDir() {
+				file = file + string(os.PathSeparator)
+			}
+			*untracked = append(*untracked, file)
 		}
 	}
 	return nil
+}
+
+func trackableFile(repo *lib.Respository, file_path string, stat os.FileInfo) (bool, error) {
+	if stat == nil {
+		return false, nil
+	}
+	if !stat.IsDir() {
+		return !repo.Index.IsEntryTracked(file_path), nil
+	} else {
+		//depth first search
+		items, err := repo.Workspace.ListDirs(file_path)
+		if err != nil {
+			return false, err
+		}
+		for item_path, item_info := range items {
+			trackable, err := trackableFile(repo, item_path, item_info)
+			if err != nil {
+				return false, err
+			}
+			if trackable {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }

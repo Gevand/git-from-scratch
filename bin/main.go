@@ -8,6 +8,7 @@ import (
 
 var env_variables = [...]string{"GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL"}
 
+// comment for check in
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "Program requires arguments to be passed into it \r\n")
@@ -22,7 +23,7 @@ func main() {
 	cmd := commands.NewCommand(os.Args[2:], temp)
 	err := cmd.Execute(command)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v \r\n", err)
+		fmt.Fprintf(os.Stderr, "\033[31m%v\033[0m\n", err)
 		os.Exit(-1)
 	}
 }

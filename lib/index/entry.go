@@ -7,7 +7,6 @@ import (
 	"geo-git/lib/utils"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -186,26 +185,21 @@ func timespecToTime(ts syscall.Timespec) time.Time {
 }
 
 func (ie *IndexEntry) ParentDirectories() []string {
-	subPath := ie.Path
-	var result []string
-	for {
-		subPath = filepath.Clean(subPath)
+	var dirs []string
+	dir := filepath.Dir(ie.Path)
 
-		dir, last := filepath.Split(subPath)
-		if last == "" {
-			if dir != "" {
-				result = append(result, dir)
-			}
-			break
-		}
-		result = append(result, last)
-
-		if dir == "" {
-			break
-		}
-		subPath = dir
+	for dir != "." && dir != "/" {
+		dirs = append(dirs, dir)
+		dir = filepath.Dir(dir)
 	}
 
-	slices.Reverse(result)
-	return result[:len(result)-1]
+	if dir == "/" {
+		dirs = append(dirs, dir)
+	}
+
+	// Reverse the slice to maintain correct order
+	for i, j := 0, len(dirs)-1; i < j; i, j = i+1, j-1 {
+		dirs[i], dirs[j] = dirs[j], dirs[i]
+	}
+	return dirs
 }
