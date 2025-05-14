@@ -203,3 +203,7 @@ func (ie *IndexEntry) ParentDirectories() []string {
 	}
 	return dirs
 }
+
+func (ie *IndexEntry) StatMatch(stat os.FileInfo) bool {
+	return ie.Size == 0 || ie.Size == stat.Size()
+}

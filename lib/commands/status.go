@@ -14,10 +14,23 @@ func RunStatus(repo *lib.Respository, cmd *Command) error {
 		return err
 	}
 	untracked := []string{}
-	err = scanWorkspace(repo, "", &untracked)
+	stats := map[string]os.FileInfo{}
+	err = scanWorkspace(repo, "", &untracked, &stats)
 	if err != nil {
 		return err
 	}
+
+	changed := []string{}
+	err = detectWorkspaceChanges(repo, "", &changed, &stats)
+	if err != nil {
+		return err
+	}
+
+	sort.Strings(changed)
+	for _, file := range slices.Compact(changed) {
+		fmt.Printf("M %s\r\n", file)
+	}
+
 	sort.Strings(untracked)
 	for _, file := range slices.Compact(untracked) {
 		fmt.Printf("?? %s\r\n", file)
@@ -25,7 +38,17 @@ func RunStatus(repo *lib.Respository, cmd *Command) error {
 	return nil
 }
 
-func scanWorkspace(repo *lib.Respository, prefix string, untracked *[]string) error {
+func detectWorkspaceChanges(repo *lib.Respository, prefix string, changed *[]string, stats *map[string]os.FileInfo) error {
+	for _, entry := range repo.Index.Entries {
+		stat := (*stats)[entry.Path]
+		if !entry.StatMatch(stat) {
+			*changed = append(*changed, entry.Path)
+		}
+	}
+	return nil
+}
+
+func scanWorkspace(repo *lib.Respository, prefix string, untracked *[]string, stats *map[string]os.FileInfo) error {
 	files, err := repo.Workspace.ListDirs(prefix)
 	if err != nil {
 		return err
@@ -37,10 +60,12 @@ func scanWorkspace(repo *lib.Respository, prefix string, untracked *[]string) er
 		}
 		if repo.Index.IsEntryTracked(file) {
 			if fileInfo.IsDir() {
-				err := scanWorkspace(repo, file, untracked)
+				err := scanWorkspace(repo, file, untracked, stats)
 				if err != nil {
 					return err
 				}
+			} else {
+				(*stats)[file] = fileInfo
 			}
 		} else if trackable {
 			if fileInfo.IsDir() {

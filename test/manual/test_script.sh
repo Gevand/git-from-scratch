@@ -36,8 +36,9 @@ echo "My Second Commit Message" | ./geo-git "commit"
 mkdir "d"
 mkdir "d/e"
 echo  "f" > "d/e/f.txt"
-./geo-git "status"
+echo "Modified c" > "c.txt"
 ./geo-git add "d/e/f.txt"
+./geo-git "status"
 echo "My Third Commit Message" | ./geo-git "commit"
 
 more .git/HEAD

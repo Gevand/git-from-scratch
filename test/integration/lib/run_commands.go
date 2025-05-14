@@ -42,3 +42,11 @@ func CleanUpFolder(folder string) {
 		panic(err)
 	}
 }
+
+func RunCustomCommand(folder string, command string, arguments ...string) {
+	cmd := exec.Command(command, arguments...)
+	cmd.Dir = folder
+	if err := cmd.Run(); err != nil {
+		panic(err)
+	}
+}

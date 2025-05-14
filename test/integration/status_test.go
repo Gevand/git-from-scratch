@@ -26,7 +26,7 @@ func TestStatus(t *testing.T) {
 	}
 }
 
-func TestTatus_IgnoreIndexFiles(t *testing.T) {
+func TestStatus_IgnoreIndexFiles(t *testing.T) {
 	folder := lib.GenerateRandomString()
 	txt_file_tracked := lib.GenerateRandomString()
 	txt_file_tracked_path := path.Join(folder, txt_file_tracked)
@@ -53,5 +53,38 @@ func TestTatus_IgnoreIndexFiles(t *testing.T) {
 	}
 	if strings.Contains(status_output, "?? "+txt_file_tracked) {
 		t.Errorf("Status command didn't return the expected output: %s shouldn't be untracked", txt_file_tracked)
+	}
+}
+
+func TestStatus_WorkSpaceChange(t *testing.T) {
+	folder := lib.GenerateRandomString()
+	lib.RunInit(folder)
+	defer lib.CleanUpFolder(folder)
+	one_txt, err := os.Create(path.Join(folder, "1.txt"))
+	if err != nil {
+		t.Errorf("Can't create the file on path %s", "1.txt")
+		return
+	}
+	defer one_txt.Close()
+	one_txt.WriteString("1")
+
+	lib.RunCustomCommand(folder, "mkdir", "a")
+	two_txt, err := os.Create(path.Join(folder, "a/2.txt"))
+	if err != nil {
+		t.Errorf("Can't create the file on path %s", "a/2.txt")
+		return
+	}
+	defer two_txt.Close()
+
+	two_txt.WriteString("2")
+	lib.RunGitCommand(folder, "add", ".")
+	lib.RunGitCommand(folder, "commit", "some message")
+
+	//modifying the second file
+	two_txt.WriteString("Modified")
+
+	status_output := lib.RunGitCommandWithOutput(folder, "status")
+	if !strings.Contains(status_output, "M "+"a/2.txt") {
+		t.Errorf("Status command didn't return the expected output: %s should be modified", "a/2.txt")
 	}
 }
