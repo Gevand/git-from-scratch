@@ -7,6 +7,7 @@ import (
 	"geo-git/lib/utils"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -40,6 +41,7 @@ func NewEntry(stat os.FileInfo, path, oid string) (*IndexEntry, error) {
 			Ctime_Nsec: stats.Ctim.Nsec,
 			Mtime_Nsec: stats.Mtim.Nsec,
 			Device:     stats.Dev, Inode: stats.Ino,
+			//not sure if this is right, mode should be 100755 for example, not 755, so probably need to figure out how to make this work is ModeForStat
 			Mode: stats.Mode, Path: path, Oid: oid,
 			Flags: min(len([]byte(path)), MAX_PATH_SIZE)}, nil
 	} else {
@@ -205,5 +207,17 @@ func (ie *IndexEntry) ParentDirectories() []string {
 }
 
 func (ie *IndexEntry) StatMatch(stat os.FileInfo) bool {
-	return ie.Size == 0 || ie.Size == stat.Size()
+	return ModeForStat(ie.Mode) == ModeForStat(uint32(stat.Mode())) && (ie.Size == 0 || ie.Size == stat.Size())
+}
+
+func ModeForStat(mode uint32) (ret uint32) {
+	executable := mode&0111 != 0
+	if executable {
+		temp, _ := strconv.ParseUint(EXECUTABLE_MODE, 10, 32)
+		ret = uint32(temp)
+	} else {
+		temp, _ := strconv.ParseUint(REGULAR_MODE, 10, 32)
+		ret = uint32(temp)
+	}
+	return ret
 }

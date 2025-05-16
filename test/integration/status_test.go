@@ -88,3 +88,31 @@ func TestStatus_WorkSpaceChange(t *testing.T) {
 		t.Errorf("Status command didn't return the expected output: %s should be modified", "a/2.txt")
 	}
 }
+
+func TestStatus_WorkSpaceChange_FileIsExecutable(t *testing.T) {
+	folder := lib.GenerateRandomString()
+	lib.RunInit(folder)
+	defer lib.CleanUpFolder(folder)
+	one_txt, err := os.Create(path.Join(folder, "1.txt"))
+	if err != nil {
+		t.Errorf("Can't create the file on path %s", "1.txt")
+		return
+	}
+	defer one_txt.Close()
+	one_txt.WriteString("1")
+
+	lib.RunGitCommand(folder, "add", ".")
+	lib.RunGitCommand(folder, "commit", "some message")
+
+	//making one_txt file executable
+	err = os.Chmod(path.Join(folder, "1.txt"), 0755)
+	if err != nil {
+		t.Errorf("Can't change the file's mode")
+		return
+	}
+
+	status_output := lib.RunGitCommandWithOutput(folder, "status")
+	if !strings.Contains(status_output, "M "+"1.txt") {
+		t.Errorf("Status command didn't return the expected output: %s should be modified, got %s", "1.txt", status_output)
+	}
+}

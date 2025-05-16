@@ -24,7 +24,6 @@ rm -rf ".git"
 echo "Generate files to stage"
 echo "a" > "a.txt"
 echo "b" > "b.txt"
-chmod +x b.txt
 
 ./geo-git add a.txt b.txt
 echo "My First Commit Message" | ./geo-git "commit"
@@ -37,6 +36,8 @@ mkdir "d"
 mkdir "d/e"
 echo  "f" > "d/e/f.txt"
 echo "Modified c" > "c.txt"
+chmod +x b.txt #making b executable, modifies it
+
 ./geo-git add "d/e/f.txt"
 ./geo-git "status"
 echo "My Third Commit Message" | ./geo-git "commit"
