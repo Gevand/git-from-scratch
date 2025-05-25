@@ -3,13 +3,14 @@ package commands
 import (
 	"fmt"
 	"geo-git/lib"
+	"geo-git/lib/database"
 	"os"
 	"slices"
 	"sort"
 )
 
 func RunStatus(repo *lib.Respository, cmd *Command) error {
-	err := repo.Index.Load()
+	err := repo.Index.LoadForUpdate()
 	if err != nil {
 		return err
 	}
@@ -22,6 +23,11 @@ func RunStatus(repo *lib.Respository, cmd *Command) error {
 
 	changed := []string{}
 	err = detectWorkspaceChanges(repo, "", &changed, &stats)
+	if err != nil {
+		return err
+	}
+
+	_, err = repo.Index.WriteUpdates()
 	if err != nil {
 		return err
 	}
@@ -43,6 +49,22 @@ func detectWorkspaceChanges(repo *lib.Respository, prefix string, changed *[]str
 		stat := (*stats)[entry.Path]
 		if !entry.StatMatch(stat) {
 			*changed = append(*changed, entry.Path)
+			continue
+		} else if !entry.TimesMatch(stat) {
+			*changed = append(*changed, entry.Path)
+			continue
+		}
+		data, err := repo.Workspace.ReadFile(entry.Path)
+		if err != nil {
+			return err
+		}
+		blob := database.NewBlob(data)
+		oid := blob.HashObject()
+		if entry.Oid == oid {
+			repo.Index.UpdateEntryStat(entry, stat)
+		} else {
+			*changed = append(*changed, entry.Path)
+			continue
 		}
 	}
 	return nil

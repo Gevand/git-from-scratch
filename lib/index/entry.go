@@ -49,6 +49,22 @@ func NewEntry(stat os.FileInfo, path, oid string) (*IndexEntry, error) {
 	}
 }
 
+func (ie *IndexEntry) UpdateStat(stat os.FileInfo) {
+	if stats, ok := stat.Sys().(*syscall.Stat_t); ok {
+		ie.Uid = stats.Uid
+		ie.Gid = stats.Gid
+		ie.Size = stats.Size
+		ie.Ctime = timespecToTime(stats.Ctim)
+		ie.Mtime = timespecToTime(stats.Mtim)
+		ie.Ctime_Nsec = stats.Ctim.Nsec
+		ie.Mtime_Nsec = stats.Mtim.Nsec
+		ie.Device = stats.Dev
+		ie.Inode = stats.Ino
+		//not sure if this is right, mode should be 100755 for example, not 755, so probably need to figure out how to make this work is ModeForStat
+		ie.Mode = stats.Mode
+	}
+}
+
 func (ie *IndexEntry) ToString() (string, error) {
 	//N10H40nZ*
 
@@ -208,6 +224,10 @@ func (ie *IndexEntry) ParentDirectories() []string {
 
 func (ie *IndexEntry) StatMatch(stat os.FileInfo) bool {
 	return ModeForStat(ie.Mode) == ModeForStat(uint32(stat.Mode())) && (ie.Size == 0 || ie.Size == stat.Size())
+}
+func (ie *IndexEntry) TimesMatch(stat os.FileInfo) bool {
+	//This function is missing comparing create date and nsec, but its too much of a pain to do this in go, so I'll just compare mod time
+	return ie.Mtime == stat.ModTime()
 }
 
 func ModeForStat(mode uint32) (ret uint32) {

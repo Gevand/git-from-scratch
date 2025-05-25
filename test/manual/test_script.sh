@@ -44,7 +44,6 @@ echo "My Third Commit Message" | ./geo-git "commit"
 
 more .git/HEAD
 git cat-file -p HEAD^{tree}
-more .git/index
 
 echo "g" > "g.txt"
 echo "h" > "h.txt"

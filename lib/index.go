@@ -237,3 +237,8 @@ func (i *Index) ReadEntries(reader *ind.Checksum, count int) error {
 	}
 	return nil
 }
+
+func (i *Index) UpdateEntryStat(entry *ind.IndexEntry, stat os.FileInfo) {
+	entry.UpdateStat(stat)
+	i.changed = true
+}

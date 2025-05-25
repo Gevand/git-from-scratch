@@ -3,9 +3,6 @@ package database
 import (
 	"bytes"
 	"compress/zlib"
-	"crypto/sha1"
-	"encoding/hex"
-	"fmt"
 	"io"
 	"os"
 	"path"
@@ -27,10 +24,8 @@ func NewDatabase(pathname string) *Database {
 }
 
 func (d *Database) StoreBlob(obj *Blob) error {
-	content := fmt.Sprintf("%s %v\000%s", obj.Type, len(obj.Data), obj.Data)
-	h := sha1.New()
-	h.Write([]byte(content))
-	obj.Oid = hex.EncodeToString(h.Sum(nil))
+	content := obj.GetContent()
+	obj.Oid = obj.HashObject()
 	return d.WriteObject(obj.Oid, content)
 }
 
