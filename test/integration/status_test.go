@@ -85,7 +85,7 @@ func TestStatus_WorkSpaceChange(t *testing.T) {
 
 	status_output := lib.RunGitCommandWithOutput(folder, "status")
 	if !strings.Contains(status_output, "M "+"a/2.txt") {
-		t.Errorf("Status command didn't return the expected output: %s should be modified", "a/2.txt")
+		t.Errorf("Status command didn't return the expected output: %s should be modified, got %s", "a/2.txt", status_output)
 	}
 }
 
@@ -137,7 +137,7 @@ func TestStatus_WorkSpaceChange_DoubleSave(t *testing.T) {
 
 	status_output := lib.RunGitCommandWithOutput(folder, "status")
 	if !strings.Contains(status_output, "M "+"1.txt") {
-		t.Errorf("Status command didn't return the expected output: %s should be modified", "1.txt")
+		t.Errorf("Status command didn't return the expected output: %s should be modified, got %s", "1.txt", status_output)
 	}
 }
 

@@ -9,20 +9,50 @@ import (
 	"sort"
 )
 
+type Status int
+
+const (
+	WorkspaceDeleted Status = iota
+	WorkspaceModified
+)
+
+type StatusTracking struct {
+	Changed   []string
+	Changes   map[string][]Status
+	Untracked []string
+	Stats     map[string]os.FileInfo
+}
+
+func (st *StatusTracking) Sort() {
+	sort.Strings(st.Changed)
+	sort.Strings(st.Untracked)
+}
+
+func statusForPath(path string, statusTracking *StatusTracking) string {
+	change := statusTracking.Changes[path]
+	return_status := " "
+
+	if slices.Contains(change, WorkspaceDeleted) {
+		return_status = " D"
+	}
+	if slices.Contains(change, WorkspaceModified) {
+		return_status = " M"
+	}
+	return return_status
+}
+
 func RunStatus(repo *lib.Respository, cmd *Command) error {
 	err := repo.Index.LoadForUpdate()
 	if err != nil {
 		return err
 	}
-	untracked := []string{}
-	stats := map[string]os.FileInfo{}
-	err = scanWorkspace(repo, "", &untracked, &stats)
+	statusTracking := &StatusTracking{Untracked: []string{}, Changed: []string{}, Changes: map[string][]Status{}, Stats: map[string]os.FileInfo{}}
+	err = scanWorkspace(repo, "", statusTracking)
 	if err != nil {
 		return err
 	}
 
-	changed := []string{}
-	err = detectWorkspaceChanges(repo, "", &changed, &stats)
+	err = detectWorkspaceChanges(repo, "", statusTracking)
 	if err != nil {
 		return err
 	}
@@ -31,27 +61,27 @@ func RunStatus(repo *lib.Respository, cmd *Command) error {
 	if err != nil {
 		return err
 	}
-
-	sort.Strings(changed)
-	for _, file := range slices.Compact(changed) {
-		fmt.Printf("M %s\r\n", file)
-	}
-
-	sort.Strings(untracked)
-	for _, file := range slices.Compact(untracked) {
-		fmt.Printf("?? %s\r\n", file)
-	}
+	statusTracking.Sort()
+	printResults(statusTracking)
 	return nil
 }
 
-func detectWorkspaceChanges(repo *lib.Respository, prefix string, changed *[]string, stats *map[string]os.FileInfo) error {
+func recordChange(statusTracking *StatusTracking, path string, status Status) {
+	statusTracking.Changed = append(statusTracking.Changed, path)
+	statusTracking.Changes[path] = append(statusTracking.Changes[path], status)
+}
+
+func detectWorkspaceChanges(repo *lib.Respository, prefix string, statusTracking *StatusTracking) error {
 	for _, entry := range repo.Index.Entries {
-		stat := (*stats)[entry.Path]
-		if !entry.StatMatch(stat) {
-			*changed = append(*changed, entry.Path)
+		stat := statusTracking.Stats[entry.Path]
+		if stat == nil {
+			recordChange(statusTracking, entry.Path, WorkspaceDeleted)
+			continue
+		} else if !entry.StatMatch(stat) {
+			recordChange(statusTracking, entry.Path, WorkspaceModified)
 			continue
 		} else if !entry.TimesMatch(stat) {
-			*changed = append(*changed, entry.Path)
+			recordChange(statusTracking, entry.Path, WorkspaceModified)
 			continue
 		}
 		data, err := repo.Workspace.ReadFile(entry.Path)
@@ -63,14 +93,14 @@ func detectWorkspaceChanges(repo *lib.Respository, prefix string, changed *[]str
 		if entry.Oid == oid {
 			repo.Index.UpdateEntryStat(entry, stat)
 		} else {
-			*changed = append(*changed, entry.Path)
+			recordChange(statusTracking, entry.Path, WorkspaceModified)
 			continue
 		}
 	}
 	return nil
 }
 
-func scanWorkspace(repo *lib.Respository, prefix string, untracked *[]string, stats *map[string]os.FileInfo) error {
+func scanWorkspace(repo *lib.Respository, prefix string, statusTracking *StatusTracking) error {
 	files, err := repo.Workspace.ListDirs(prefix)
 	if err != nil {
 		return err
@@ -82,18 +112,18 @@ func scanWorkspace(repo *lib.Respository, prefix string, untracked *[]string, st
 		}
 		if repo.Index.IsEntryTracked(file) {
 			if fileInfo.IsDir() {
-				err := scanWorkspace(repo, file, untracked, stats)
+				err := scanWorkspace(repo, file, statusTracking)
 				if err != nil {
 					return err
 				}
 			} else {
-				(*stats)[file] = fileInfo
+				statusTracking.Stats[file] = fileInfo
 			}
 		} else if trackable {
 			if fileInfo.IsDir() {
 				file = file + string(os.PathSeparator)
 			}
-			*untracked = append(*untracked, file)
+			statusTracking.Untracked = append(statusTracking.Untracked, file)
 		}
 	}
 	return nil
@@ -122,4 +152,14 @@ func trackableFile(repo *lib.Respository, file_path string, stat os.FileInfo) (b
 		}
 	}
 	return false, nil
+}
+
+func printResults(statusTracking *StatusTracking) {
+	for path, _ := range statusTracking.Changes {
+		status := statusForPath(path, statusTracking)
+		fmt.Printf("%s %s", status, path)
+	}
+	for _, file := range slices.Compact(statusTracking.Untracked) {
+		fmt.Printf("?? %s\r\n", file)
+	}
 }
