@@ -3,6 +3,7 @@ package database
 import (
 	"bytes"
 	"compress/zlib"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -17,10 +18,42 @@ var seededRand *rand.Rand = rand.New(
 
 type Database struct {
 	Pathname string
+	Objects  map[string]*Blob
 }
 
 func NewDatabase(pathname string) *Database {
-	return &Database{Pathname: pathname}
+	return &Database{Pathname: pathname, Objects: map[string]*Blob{}}
+}
+
+func (d *Database) Load(oid string) error {
+	blob, err := d.ReadObject(oid)
+	d.Objects[oid] = blob
+	return err
+}
+
+func (d *Database) ReadObject(oid string) (*Blob, error) {
+	objectPath := d.ObjectPath(oid)
+	objectRawText, err := os.ReadFile(objectPath)
+	if err != nil {
+		return nil, err
+	}
+
+	compressedBuffer := bytes.NewBuffer(objectRawText)
+	zlibReader, err := zlib.NewReader(compressedBuffer)
+	if err != nil {
+		return nil, err
+	}
+	defer zlibReader.Close()
+
+	//TODO: Is there a "ReadUntil(byte)"?
+	objectData, err := io.ReadAll(zlibReader)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO: parse the bytes, grab the type first, then the rest of the data
+	fmt.Println(objectData)
+	return nil, nil
 }
 
 func (d *Database) StoreBlob(obj *Blob) error {
@@ -52,8 +85,12 @@ func (d *Database) StoreCommit(commit *Commit) error {
 	return nil
 }
 
-func (d *Database) WriteObject(oid, content string) error {
+func (d *Database) ObjectPath(oid string) string {
 	object_path := path.Join(d.Pathname, oid[:2], oid[2:])
+	return object_path
+}
+func (d *Database) WriteObject(oid, content string) error {
+	object_path := d.ObjectPath(oid)
 	_, err := os.Stat(object_path)
 	if !os.IsNotExist(err) {
 		return nil
