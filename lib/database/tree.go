@@ -1,10 +1,14 @@
 package database
 
 import (
+	"encoding/hex"
 	"fmt"
 	"geo-git/lib/utils"
+	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
+	"strings"
 )
 
 type Tree struct {
@@ -64,13 +68,68 @@ func (t *Tree) ToString() string {
 		case *Entry:
 			temp_string := fmt.Sprintf("%v %v", fmt.Sprintf("%06o", entry.Mode), entry.Name)
 			oid_as_hexstring := string(utils.PackHexaDecimal(entry.Oid))
-			return_value = fmt.Sprintf("%s\000%s", temp_string, oid_as_hexstring)
+			return_value += fmt.Sprintf("%s\000%s", temp_string, oid_as_hexstring)
 		case *Tree:
-			temp_string := fmt.Sprintf("%v %v\000", fmt.Sprintf("%06o", DIRECTORY_MODE), entry.Name)
+			temp_string := fmt.Sprintf("%v %v", fmt.Sprintf("%06o", DIRECTORY_MODE), entry.Name)
 			oid_as_hexstring := string(utils.PackHexaDecimal(entry.Oid))
-			return_value += temp_string
-			return_value += oid_as_hexstring
+			return_value += fmt.Sprintf("%s\000%s", temp_string, oid_as_hexstring)
 		}
 	}
 	return return_value
+}
+
+func ParseFromBlob(blob *Blob) (*Tree, error) {
+	treeToReturn := &Tree{Entries: map[string]interface{}{}}
+	entry_parts := strings.Split(string(blob.Data), "\000")
+	for index, entry_part := range entry_parts {
+		entry_name := ""
+		entry_mode := ""
+		var last_entry interface{}
+		if index == 0 {
+			//first entry is always "%v %v"
+			fmt.Sscanf(entry_part[20:], "%v %v", entry_mode, entry_name)
+			if entry_mode == fmt.Sprintf("%06o", DIRECTORY_MODE) {
+				last_entry = &Tree{Name: entry_name, Entries: map[string]interface{}{}}
+			} else {
+
+				mode, err := strconv.ParseUint(entry_mode, 8, 32)
+				if err != nil {
+					return nil, err
+				}
+				last_entry = &Entry{Name: entry_name, Mode: os.FileMode(uint32(mode))}
+			}
+			treeToReturn.Entries[entry_name] = last_entry
+		} else if index == len(entry_part)-1 {
+			//last entry is always "%s"
+			previous_oid := hex.EncodeToString([]byte(entry_part)[0:20])
+			switch entry := last_entry.(type) {
+			case *Entry:
+				entry.Oid = previous_oid
+			case *Tree:
+				entry.Oid = previous_oid
+			}
+		} else {
+			//everything else is "%s%v %v"
+			previous_oid := hex.EncodeToString([]byte(entry_part)[0:20])
+			switch entry := last_entry.(type) {
+			case *Entry:
+				entry.Oid = previous_oid
+			case *Tree:
+				entry.Oid = previous_oid
+			}
+			fmt.Sscanf(entry_part[20:], "%v %v", entry_mode, entry_name)
+			if entry_mode == fmt.Sprintf("%06o", DIRECTORY_MODE) {
+				last_entry = &Tree{Name: entry_name, Entries: map[string]interface{}{}}
+			} else {
+
+				mode, err := strconv.ParseUint(entry_mode, 8, 32)
+				if err != nil {
+					return nil, err
+				}
+				last_entry = &Entry{Name: entry_name, Mode: os.FileMode(uint32(mode))}
+			}
+			treeToReturn.Entries[entry_name] = last_entry
+		}
+	}
+	return treeToReturn, nil
 }

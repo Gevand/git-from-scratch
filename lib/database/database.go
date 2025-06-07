@@ -3,11 +3,13 @@ package database
 import (
 	"bytes"
 	"compress/zlib"
-	"fmt"
+	"errors"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"golang.org/x/exp/rand"
@@ -45,15 +47,30 @@ func (d *Database) ReadObject(oid string) (*Blob, error) {
 	}
 	defer zlibReader.Close()
 
-	//TODO: Is there a "ReadUntil(byte)"?
-	objectData, err := io.ReadAll(zlibReader)
+	objectMetaData, err := io.ReadAll(zlibReader)
 	if err != nil {
 		return nil, err
 	}
 
-	//TODO: parse the bytes, grab the type first, then the rest of the data
-	fmt.Println(objectData)
-	return nil, nil
+	split := strings.Split(string(objectMetaData), " ")
+	if len(split) < 2 {
+		return nil, errors.New("invalid object file")
+	}
+	objectType := split[0]
+	split = strings.Split(split[1], "\000")
+	if len(split) < 2 {
+		return nil, errors.New("invalid object file")
+	}
+
+	_, err = strconv.Atoi(split[0])
+	if err != nil {
+		return nil, err
+	}
+	objectData := strings.Join(split[1:], "")
+
+	blobToReturn := &Blob{Data: []byte(objectData), Type: objectType}
+	blobToReturn.Oid = blobToReturn.HashObject()
+	return blobToReturn, nil
 }
 
 func (d *Database) StoreBlob(obj *Blob) error {
