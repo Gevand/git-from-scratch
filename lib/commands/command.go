@@ -37,6 +37,9 @@ func (c *Command) Execute(name string) error {
 	case "status":
 		err = RunStatus(repo, c)
 		break
+	case "showhead":
+		err = RunShowHead(repo)
+		break
 	default:
 		return errors.New(fmt.Sprintf("%s is an unknown command.", name))
 	}

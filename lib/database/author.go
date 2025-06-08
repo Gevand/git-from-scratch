@@ -21,7 +21,8 @@ func (a *Author) ToString() string {
 
 func (a *Author) Parse(line string) error {
 	var timestamp int64
-	_, err := fmt.Sscanf(line, "%s <%s> %v +0000", a.Name, a.Email, timestamp)
+	fmt.Println("Author line", line)
+	_, err := fmt.Sscanf(line, "%v<%s>%v +0000", &a.Name, &a.Email, &timestamp)
 	a.Time = time.Unix(timestamp, 0)
 	return err
 }

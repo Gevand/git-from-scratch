@@ -79,6 +79,7 @@ func (t *Tree) ToString() string {
 }
 
 func ParseFromBlob(blob *Blob) (*Tree, error) {
+	fmt.Println("Starting parse from blob", blob)
 	treeToReturn := &Tree{Entries: map[string]interface{}{}}
 	entry_parts := strings.Split(string(blob.Data), "\000")
 	for index, entry_part := range entry_parts {

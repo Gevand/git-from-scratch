@@ -3,12 +3,11 @@ package database
 import (
 	"bytes"
 	"compress/zlib"
-	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -37,6 +36,7 @@ func (d *Database) ReadObject(oid string) (*Blob, error) {
 	objectPath := d.ObjectPath(oid)
 	objectRawText, err := os.ReadFile(objectPath)
 	if err != nil {
+		fmt.Println("Readfile panic")
 		return nil, err
 	}
 
@@ -51,23 +51,12 @@ func (d *Database) ReadObject(oid string) (*Blob, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	split := strings.Split(string(objectMetaData), " ")
-	if len(split) < 2 {
-		return nil, errors.New("invalid object file")
-	}
-	objectType := split[0]
-	split = strings.Split(split[1], "\000")
-	if len(split) < 2 {
-		return nil, errors.New("invalid object file")
-	}
-
-	_, err = strconv.Atoi(split[0])
-	if err != nil {
-		return nil, err
-	}
-	objectData := strings.Join(split[1:], "")
-
+	objectData := ""
+	objectType := ""
+	split := strings.Split(string(objectMetaData), "\000")
+	objectTypeAndLength := split[0]
+	objectType = strings.Split(objectTypeAndLength, " ")[0]
+	objectData = strings.Join(split[1:], "")
 	blobToReturn := &Blob{Data: []byte(objectData), Type: objectType}
 	blobToReturn.Oid = blobToReturn.HashObject()
 	return blobToReturn, nil
@@ -141,6 +130,9 @@ func (d *Database) WriteObject(oid, content string) error {
 		return err
 	}
 	err = w.Close()
+	if err != nil {
+		return err
+	}
 	_, err = io.Copy(file, &buffer)
 	if err != nil {
 		return err

@@ -33,6 +33,7 @@ func ParseCommitFromBlob(blob *Blob) (*Commit, error) {
 	//split the rest of them by line
 	lines = strings.Split(lines[0], "\n")
 	author := Author{}
+	fmt.Println("LINES:", lines)
 	for _, line := range lines {
 		if strings.HasPrefix(line, "author") {
 			author.Parse(strings.Replace(line, "author ", "", 1))

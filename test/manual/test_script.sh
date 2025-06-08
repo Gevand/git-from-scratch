@@ -53,6 +53,8 @@ mkdir "empty_folder"
 
 ./geo-git "add" "file_that_does_not_exist.txt"
 
+./geo-git "showhead"
+
 tree .git
 more .git/HEAD
 find . ! -name '*.sh' -type f -exec rm -rf {} +

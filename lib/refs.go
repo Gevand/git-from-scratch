@@ -3,6 +3,7 @@ package lib
 import (
 	"os"
 	"path"
+	"strings"
 )
 
 type Refs struct {
@@ -41,5 +42,5 @@ func (r *Refs) ReadHead() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(b), nil
+	return strings.TrimSpace(string(b)), nil
 }
