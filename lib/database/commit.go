@@ -36,7 +36,10 @@ func ParseCommitFromBlob(blob *Blob) (*Commit, error) {
 	fmt.Println("LINES:", lines)
 	for _, line := range lines {
 		if strings.HasPrefix(line, "author") {
-			author.Parse(strings.Replace(line, "author ", "", 1))
+			err := author.Parse(strings.Replace(line, "author ", "", 1))
+			if err != nil {
+				return nil, err
+			}
 		} else if strings.HasPrefix(line, "tree") {
 			commitToReturn.Tree_Oid = strings.Replace(line, "tree ", "", 1)
 		} else if strings.HasPrefix(line, "commiter") {

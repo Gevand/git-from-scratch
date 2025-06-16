@@ -51,12 +51,13 @@ func (d *Database) ReadObject(oid string) (*Blob, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("Object metadata", "\"", string(objectMetaData), "\"")
 	objectData := ""
 	objectType := ""
 	split := strings.Split(string(objectMetaData), "\000")
 	objectTypeAndLength := split[0]
 	objectType = strings.Split(objectTypeAndLength, " ")[0]
-	objectData = strings.Join(split[1:], "")
+	objectData = strings.Join(split[1:], "\000")
 	blobToReturn := &Blob{Data: []byte(objectData), Type: objectType}
 	blobToReturn.Oid = blobToReturn.HashObject()
 	return blobToReturn, nil

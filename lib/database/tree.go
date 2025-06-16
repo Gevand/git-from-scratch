@@ -2,6 +2,7 @@ package database
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"geo-git/lib/utils"
 	"os"
@@ -75,20 +76,26 @@ func (t *Tree) ToString() string {
 			return_value += fmt.Sprintf("%s\000%s", temp_string, oid_as_hexstring)
 		}
 	}
-	return return_value
+	return strings.TrimSpace(return_value)
 }
 
-func ParseFromBlob(blob *Blob) (*Tree, error) {
-	fmt.Println("Starting parse from blob", blob)
+func ParseTreeFromBlob(blob *Blob) (*Tree, error) {
 	treeToReturn := &Tree{Entries: map[string]interface{}{}}
 	entry_parts := strings.Split(string(blob.Data), "\000")
+	//last element from slice needs to be removed as its always empty due to how golang strings work, maybe its better to look for 0 bytes instead
+	entry_parts = entry_parts[:len(entry_parts)-1]
 	for index, entry_part := range entry_parts {
 		entry_name := ""
 		entry_mode := ""
 		var last_entry interface{}
 		if index == 0 {
 			//first entry is always "%v %v"
-			fmt.Sscanf(entry_part[20:], "%v %v", entry_mode, entry_name)
+			temp_split := strings.Split(entry_part, " ")
+			if len(temp_split) != 2 {
+				return nil, errors.New("blob is not formatted as a proper tree")
+			}
+			entry_mode = temp_split[0]
+			entry_name = temp_split[1]
 			if entry_mode == fmt.Sprintf("%06o", DIRECTORY_MODE) {
 				last_entry = &Tree{Name: entry_name, Entries: map[string]interface{}{}}
 			} else {
@@ -118,7 +125,12 @@ func ParseFromBlob(blob *Blob) (*Tree, error) {
 			case *Tree:
 				entry.Oid = previous_oid
 			}
-			fmt.Sscanf(entry_part[20:], "%v %v", entry_mode, entry_name)
+			temp_split := strings.Split(entry_part[20:], " ")
+			if len(temp_split) != 2 {
+				return nil, errors.New("blob is not formatted as a proper tree")
+			}
+			entry_mode = temp_split[0]
+			entry_name = temp_split[1]
 			if entry_mode == fmt.Sprintf("%06o", DIRECTORY_MODE) {
 				last_entry = &Tree{Name: entry_name, Entries: map[string]interface{}{}}
 			} else {
