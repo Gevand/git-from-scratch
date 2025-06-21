@@ -51,7 +51,6 @@ func (d *Database) ReadObject(oid string) (*Blob, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Object metadata", "\"", string(objectMetaData), "\"")
 	objectData := ""
 	objectType := ""
 	split := strings.Split(string(objectMetaData), "\000")

@@ -82,12 +82,12 @@ func (t *Tree) ToString() string {
 func ParseTreeFromBlob(blob *Blob) (*Tree, error) {
 	treeToReturn := &Tree{Entries: map[string]interface{}{}}
 	entry_parts := strings.Split(string(blob.Data), "\000")
-	//last element from slice needs to be removed as its always empty due to how golang strings work, maybe its better to look for 0 bytes instead
-	entry_parts = entry_parts[:len(entry_parts)-1]
+
+	entry_name := ""
+	entry_mode := ""
+	var last_entry interface{}
 	for index, entry_part := range entry_parts {
-		entry_name := ""
-		entry_mode := ""
-		var last_entry interface{}
+
 		if index == 0 {
 			//first entry is always "%v %v"
 			temp_split := strings.Split(entry_part, " ")
@@ -107,9 +107,9 @@ func ParseTreeFromBlob(blob *Blob) (*Tree, error) {
 				last_entry = &Entry{Name: entry_name, Mode: os.FileMode(uint32(mode))}
 			}
 			treeToReturn.Entries[entry_name] = last_entry
-		} else if index == len(entry_part)-1 {
+		} else if index == len(entry_parts)-1 {
 			//last entry is always "%s"
-			previous_oid := hex.EncodeToString([]byte(entry_part)[0:20])
+			previous_oid := hex.EncodeToString([]byte(entry_part))
 			switch entry := last_entry.(type) {
 			case *Entry:
 				entry.Oid = previous_oid

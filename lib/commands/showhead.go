@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"geo-git/lib"
 	db "geo-git/lib/database"
+	"path"
 )
 
 func RunShowHead(repo *lib.Respository) error {
@@ -19,13 +20,30 @@ func RunShowHead(repo *lib.Respository) error {
 	if err != nil {
 		return err
 	}
-	repo.Database.Load(commit.Tree_Oid)
-	blob_tree := repo.Database.Objects[commit.Tree_Oid]
+	err = showTree(repo, commit.Tree_Oid, "")
+	return err
+}
+
+func showTree(repo *lib.Respository, oid string, prefix string) error {
+	repo.Database.Load(oid)
+	blob_tree := repo.Database.Objects[oid]
 	tree, err := db.ParseTreeFromBlob(blob_tree)
 	if err != nil {
 		return err
 	}
-	fmt.Println("My Tree", tree)
-	//todo: parse the tree
+
+	for name, entry := range tree.Entries {
+		path := path.Join(prefix, name)
+		switch temp_entry := entry.(type) {
+		case *db.Tree:
+			err := showTree(repo, temp_entry.Oid, path)
+			if err != nil {
+				return err
+			}
+		case *db.Entry:
+			mode := temp_entry.Mode.String()
+			fmt.Println(mode, temp_entry.Oid, path)
+		}
+	}
 	return nil
 }
