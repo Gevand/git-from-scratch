@@ -25,6 +25,9 @@ func RunShowHead(repo *lib.Respository) error {
 }
 
 func showTree(repo *lib.Respository, oid string, prefix string) error {
+	if oid == "" {
+		return nil
+	}
 	repo.Database.Load(oid)
 	blob_tree := repo.Database.Objects[oid]
 	tree, err := db.ParseTreeFromBlob(blob_tree)
@@ -32,8 +35,15 @@ func showTree(repo *lib.Respository, oid string, prefix string) error {
 		return err
 	}
 
-	for name, entry := range tree.Entries {
-		path := path.Join(prefix, name)
+	//sort the keys so they appear in a nice order
+	keys := []string{}
+	for key := range tree.Entries {
+		keys = append(keys, key)
+	}
+
+	for _, key := range keys {
+		entry := tree.Entries[key]
+		path := path.Join(prefix, key)
 		switch temp_entry := entry.(type) {
 		case *db.Tree:
 			err := showTree(repo, temp_entry.Oid, path)

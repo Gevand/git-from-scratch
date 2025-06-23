@@ -87,7 +87,6 @@ func ParseTreeFromBlob(blob *Blob) (*Tree, error) {
 	entry_mode := ""
 	var last_entry interface{}
 	for index, entry_part := range entry_parts {
-
 		if index == 0 {
 			//first entry is always "%v %v"
 			temp_split := strings.Split(entry_part, " ")

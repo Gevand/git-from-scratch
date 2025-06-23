@@ -33,6 +33,7 @@ func (d *Database) Load(oid string) error {
 }
 
 func (d *Database) ReadObject(oid string) (*Blob, error) {
+	fmt.Println("Working on ", oid)
 	objectPath := d.ObjectPath(oid)
 	objectRawText, err := os.ReadFile(objectPath)
 	if err != nil {
@@ -56,7 +57,7 @@ func (d *Database) ReadObject(oid string) (*Blob, error) {
 	split := strings.Split(string(objectMetaData), "\000")
 	objectTypeAndLength := split[0]
 	objectType = strings.Split(objectTypeAndLength, " ")[0]
-	objectData = strings.Join(split[1:], "\000")
+	objectData = strings.Replace(string(objectMetaData), objectType+"\000", "", 1)
 	blobToReturn := &Blob{Data: []byte(objectData), Type: objectType}
 	blobToReturn.Oid = blobToReturn.HashObject()
 	return blobToReturn, nil

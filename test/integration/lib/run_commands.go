@@ -31,7 +31,7 @@ func RunGitCommandWithOutput(folder string, arguments ...string) string {
 	cmd.Dir = folder
 	out, err := cmd.Output()
 	if err != nil {
-		panic(err)
+		return string(err.Error())
 	}
 	return string(out)
 }

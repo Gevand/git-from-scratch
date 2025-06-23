@@ -82,7 +82,6 @@ func TestStatus_WorkSpaceChange(t *testing.T) {
 
 	//modifying the second file
 	two_txt.WriteString("Modified")
-
 	status_output := lib.RunGitCommandWithOutput(folder, "status")
 	if !strings.Contains(status_output, "M "+"a/2.txt") {
 		t.Errorf("Status command didn't return the expected output: %s should be modified, got %s", "a/2.txt", status_output)
@@ -165,5 +164,36 @@ func TestStatus_DeleteCommitedFile(t *testing.T) {
 	status_output := lib.RunGitCommandWithOutput(folder, "status")
 	if !strings.Contains(status_output, "D "+"1.txt") {
 		t.Errorf("Status command didn't return the expected output: %s should be deleted, got %s", "1.txt", status_output)
+	}
+}
+
+func TestStatus_AddNewFile(t *testing.T) {
+	folder := lib.GenerateRandomString()
+	lib.RunInit(folder)
+	defer lib.CleanUpFolder(folder)
+	one_txt, err := os.Create(path.Join(folder, "1.txt"))
+	if err != nil {
+		t.Errorf("Can't create the file on path %s", "1.txt")
+		return
+	}
+	one_txt.WriteString("1")
+
+	lib.RunCustomCommand(folder, "mkdir", "a")
+	two_txt, err := os.Create(path.Join(folder, "a/2.txt"))
+	if err != nil {
+		t.Errorf("Can't create the file on path %s", "a/2.txt")
+		return
+	}
+	defer two_txt.Close()
+	two_txt.WriteString("2")
+
+	lib.RunGitCommand(folder, "add", ".")
+
+	status_output := lib.RunGitCommandWithOutput(folder, "status")
+	if !strings.Contains(status_output, "A "+"1.txt") {
+		t.Errorf("Status command didn't return the expected output: %s should be added, got %s", "1.txt", status_output)
+	}
+	if !strings.Contains(status_output, "A "+"a/2.txt") {
+		t.Errorf("Status command didn't return the expected output: %s should be added, got %s", "2.txt", status_output)
 	}
 }

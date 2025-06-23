@@ -23,7 +23,7 @@ func main() {
 	cmd := commands.NewCommand(os.Args[2:], temp)
 	err := cmd.Execute(command)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\033[31m%v\033[0m\n", err)
+		fmt.Fprintf(os.Stderr, "%v \033[31m%v\033[0m\n", command, err)
 		os.Exit(-1)
 	}
 }

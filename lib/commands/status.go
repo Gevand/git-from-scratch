@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"geo-git/lib"
 	"geo-git/lib/database"
+	db "geo-git/lib/database"
 	"os"
+	"path"
 	"slices"
 	"sort"
 )
@@ -14,6 +16,7 @@ type Status int
 const (
 	WorkspaceDeleted Status = iota
 	WorkspaceModified
+	IndexAdded
 )
 
 type StatusTracking struct {
@@ -21,6 +24,7 @@ type StatusTracking struct {
 	Changes   map[string][]Status
 	Untracked []string
 	Stats     map[string]os.FileInfo
+	HeadTree  map[string]*db.Entry
 }
 
 func (st *StatusTracking) Sort() {
@@ -30,15 +34,19 @@ func (st *StatusTracking) Sort() {
 
 func statusForPath(path string, statusTracking *StatusTracking) string {
 	change := statusTracking.Changes[path]
-	return_status := " "
+	left := ""
+	right := ""
 
 	if slices.Contains(change, WorkspaceDeleted) {
-		return_status = " D"
+		right = "D"
 	}
 	if slices.Contains(change, WorkspaceModified) {
-		return_status = " M"
+		right = "M"
 	}
-	return return_status
+	if slices.Contains(change, IndexAdded) {
+		left = "A"
+	}
+	return left + right
 }
 
 func RunStatus(repo *lib.Respository, cmd *Command) error {
@@ -46,13 +54,18 @@ func RunStatus(repo *lib.Respository, cmd *Command) error {
 	if err != nil {
 		return err
 	}
-	statusTracking := &StatusTracking{Untracked: []string{}, Changed: []string{}, Changes: map[string][]Status{}, Stats: map[string]os.FileInfo{}}
+	statusTracking := &StatusTracking{Untracked: []string{}, Changed: []string{}, Changes: map[string][]Status{}, Stats: map[string]os.FileInfo{}, HeadTree: map[string]*db.Entry{}}
 	err = scanWorkspace(repo, "", statusTracking)
 	if err != nil {
 		return err
 	}
 
-	err = detectWorkspaceChanges(repo, "", statusTracking)
+	err = loadHeadTree(repo, "", statusTracking)
+	if err != nil {
+		return err
+	}
+
+	err = detectChanges(repo, "", statusTracking)
 	if err != nil {
 		return err
 	}
@@ -71,7 +84,17 @@ func recordChange(statusTracking *StatusTracking, path string, status Status) {
 	statusTracking.Changes[path] = append(statusTracking.Changes[path], status)
 }
 
-func detectWorkspaceChanges(repo *lib.Respository, prefix string, statusTracking *StatusTracking) error {
+func detectChanges(repo *lib.Respository, prefix string, statusTracking *StatusTracking) error {
+
+	//against head tree -- detectHeadTreeChanges
+	for _, entry := range repo.Index.Entries {
+
+		_, ok := statusTracking.HeadTree[entry.Path]
+		if !ok {
+			recordChange(statusTracking, entry.Path, IndexAdded)
+		}
+	}
+	//against workspace -- detectWorkSpaceChanges
 	for _, entry := range repo.Index.Entries {
 		stat := statusTracking.Stats[entry.Path]
 		if stat == nil {
@@ -129,15 +152,15 @@ func scanWorkspace(repo *lib.Respository, prefix string, statusTracking *StatusT
 	return nil
 }
 
-func trackableFile(repo *lib.Respository, file_path string, stat os.FileInfo) (bool, error) {
+func trackableFile(repo *lib.Respository, filepath string, stat os.FileInfo) (bool, error) {
 	if stat == nil {
 		return false, nil
 	}
 	if !stat.IsDir() {
-		return !repo.Index.IsEntryTracked(file_path), nil
+		return !repo.Index.IsEntryTracked(filepath), nil
 	} else {
 		//depth first search
-		items, err := repo.Workspace.ListDirs(file_path)
+		items, err := repo.Workspace.ListDirs(filepath)
 		if err != nil {
 			return false, err
 		}
@@ -157,9 +180,59 @@ func trackableFile(repo *lib.Respository, file_path string, stat os.FileInfo) (b
 func printResults(statusTracking *StatusTracking) {
 	for path, _ := range statusTracking.Changes {
 		status := statusForPath(path, statusTracking)
-		fmt.Printf("%s %s", status, path)
+		fmt.Printf("%s %s\r\n", status, path)
 	}
 	for _, file := range slices.Compact(statusTracking.Untracked) {
 		fmt.Printf("?? %s\r\n", file)
 	}
+}
+
+func loadHeadTree(repo *lib.Respository, filepath string, statusTracking *StatusTracking) error {
+	headOid, err := repo.Refs.ReadHead()
+	if err != nil {
+		return err
+	}
+	if headOid == "" {
+		return nil
+	}
+
+	err = repo.Database.Load(headOid)
+	if err != nil {
+		return err
+	}
+	blob_commit := repo.Database.Objects[headOid]
+	commit, err := db.ParseCommitFromBlob(blob_commit)
+	if err != nil {
+		return err
+	}
+	readTree(repo, commit.Tree_Oid, "", statusTracking)
+	return nil
+
+}
+
+func readTree(repo *lib.Respository, oid string, prefix string, statusTracking *StatusTracking) error {
+	if oid == "" {
+		return nil
+	}
+
+	repo.Database.Load(oid)
+	blob_tree := repo.Database.Objects[oid]
+	tree, err := db.ParseTreeFromBlob(blob_tree)
+	if err != nil {
+		return err
+	}
+
+	for key, entry := range tree.Entries {
+		path := path.Join(prefix, key)
+		switch temp_entry := entry.(type) {
+		case *db.Tree:
+			err := showTree(repo, temp_entry.Oid, path)
+			if err != nil {
+				return err
+			}
+		case *db.Entry:
+			statusTracking.HeadTree[path] = temp_entry
+		}
+	}
+	return nil
 }
