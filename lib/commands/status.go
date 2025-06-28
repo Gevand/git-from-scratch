@@ -138,9 +138,10 @@ func checkIndexAgainstWorkSpace(entry *ind.IndexEntry, statusTracking *StatusTra
 func checkIndexAgainstHeadTree(entry *ind.IndexEntry, statusTracking *StatusTracking) error {
 
 	found_item, ok := statusTracking.HeadTree[entry.Path]
-	if ok && (entry.Mode != uint32(found_item.Mode) || entry.Oid != found_item.Oid) {
+	if ok && found_item != nil {
 		recordChange(statusTracking, entry.Path, statusTracking.IndexChanges, Modified)
 	} else if !ok {
+		fmt.Println("Not found", entry.Path, "in", statusTracking.HeadTree)
 		recordChange(statusTracking, entry.Path, statusTracking.IndexChanges, Added)
 	}
 
@@ -179,6 +180,58 @@ func scanWorkspace(prefix string, statusTracking *StatusTracking) error {
 			statusTracking.Untracked = append(statusTracking.Untracked, file)
 		}
 	}
+	return nil
+}
+
+func loadHeadTree(statusTracking *StatusTracking) error {
+	headOid, err := statusRepo.Refs.ReadHead()
+	if err != nil {
+		return err
+	}
+	if headOid == "" {
+		return nil
+	}
+
+	err = statusRepo.Database.Load(headOid)
+	if err != nil {
+		return err
+	}
+	blob_commit := statusRepo.Database.Objects[headOid]
+	commit, err := db.ParseCommitFromBlob(blob_commit)
+	if err != nil {
+		return err
+	}
+	readTree(commit.Tree_Oid, "", statusTracking)
+	return nil
+
+}
+
+func readTree(oid string, prefix string, statusTracking *StatusTracking) error {
+	if oid == "" {
+		return nil
+	}
+
+	statusRepo.Database.Load(oid)
+	blob_tree := statusRepo.Database.Objects[oid]
+	tree, err := db.ParseTreeFromBlob(blob_tree)
+	if err != nil {
+		return err
+	}
+
+	for key, entry := range tree.Entries {
+		path := path.Join(prefix, key)
+		fmt.Println("WOrking on ", path)
+		switch temp_entry := entry.(type) {
+		case *db.Tree:
+			err := showTree(statusRepo, temp_entry.Oid, path)
+			if err != nil {
+				return err
+			}
+		case *db.Entry:
+			statusTracking.HeadTree[path] = temp_entry
+		}
+	}
+	fmt.Println("DEBUG", statusTracking.HeadTree)
 	return nil
 }
 
@@ -236,8 +289,8 @@ func printChanges(message string, changes map[string]Status) {
 	fmt.Println("")
 	for path, status := range changes {
 		fmt.Printf("%s %s\n", LongStatusMap[status], path)
-
 	}
+	fmt.Println("")
 }
 func printUntrackedChanges(message string, changes []string) {
 	if len(changes) == 0 {
@@ -247,8 +300,8 @@ func printUntrackedChanges(message string, changes []string) {
 	fmt.Println("")
 	for _, path := range changes {
 		fmt.Printf("%s\n", path)
-
 	}
+	fmt.Println("")
 }
 func printResultsPorcelain(statusTracking *StatusTracking) {
 	for path, _ := range statusTracking.IndexChanges {
@@ -278,54 +331,4 @@ func statusForPath(path string, statusTracking *StatusTracking) string {
 	}
 
 	return left + right
-}
-
-func loadHeadTree(statusTracking *StatusTracking) error {
-	headOid, err := statusRepo.Refs.ReadHead()
-	if err != nil {
-		return err
-	}
-	if headOid == "" {
-		return nil
-	}
-
-	err = statusRepo.Database.Load(headOid)
-	if err != nil {
-		return err
-	}
-	blob_commit := statusRepo.Database.Objects[headOid]
-	commit, err := db.ParseCommitFromBlob(blob_commit)
-	if err != nil {
-		return err
-	}
-	readTree(statusRepo, commit.Tree_Oid, "", statusTracking)
-	return nil
-
-}
-
-func readTree(repo *lib.Respository, oid string, prefix string, statusTracking *StatusTracking) error {
-	if oid == "" {
-		return nil
-	}
-
-	repo.Database.Load(oid)
-	blob_tree := repo.Database.Objects[oid]
-	tree, err := db.ParseTreeFromBlob(blob_tree)
-	if err != nil {
-		return err
-	}
-
-	for key, entry := range tree.Entries {
-		path := path.Join(prefix, key)
-		switch temp_entry := entry.(type) {
-		case *db.Tree:
-			err := showTree(repo, temp_entry.Oid, path)
-			if err != nil {
-				return err
-			}
-		case *db.Entry:
-			statusTracking.HeadTree[path] = temp_entry
-		}
-	}
-	return nil
 }

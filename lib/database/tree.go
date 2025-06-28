@@ -79,14 +79,34 @@ func (t *Tree) ToString() string {
 	return strings.TrimSpace(return_value)
 }
 
+/*
+def self.parse(scanner)
+entries = {}
+until scanner.eos?
+mode = scanner.scan_until(/ /).strip.to_i(8)
+name = scanner.scan_until(/\0/)[0..-2]
+oid = scanner.peek(20).unpack("H40").first
+scanner.pos += 20
+entries[name] = Entry.new(oid, mode)
+end
+Tree.new(entries)
+end
+*/
 func ParseTreeFromBlob(blob *Blob) (*Tree, error) {
 	treeToReturn := &Tree{Entries: map[string]interface{}{}}
-	entry_parts := strings.Split(string(blob.Data), "\000")
+	blob_data := string(blob.Data)
+	//first line of the blob is tree space length\000, get rid of that
+	blob_prefix := (strings.Split(blob_data, "\000")[0]) + "\000"
+	blob_data = strings.Replace(blob_data, blob_prefix, "", 1)
+	//starts the parsing process
+	entry_parts := strings.Split(blob_data, "\000")
 
 	entry_name := ""
 	entry_mode := ""
 	var last_entry interface{}
+	fmt.Println("DEBUG - ENTRY PARTS", entry_parts)
 	for index, entry_part := range entry_parts {
+		fmt.Println("Prasing index", index, "part", entry_part)
 		if index == 0 {
 			//first entry is always "%v %v"
 			temp_split := strings.Split(entry_part, " ")
@@ -95,6 +115,7 @@ func ParseTreeFromBlob(blob *Blob) (*Tree, error) {
 			}
 			entry_mode = temp_split[0]
 			entry_name = temp_split[1]
+			fmt.Println("PARSING ENTRY MODE")
 			if entry_mode == fmt.Sprintf("%06o", DIRECTORY_MODE) {
 				last_entry = &Tree{Name: entry_name, Entries: map[string]interface{}{}}
 			} else {
