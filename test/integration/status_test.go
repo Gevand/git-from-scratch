@@ -20,7 +20,7 @@ func TestStatus(t *testing.T) {
 	}
 	defer file.Close()
 	file.Write([]byte("Test Text"))
-	status_output := lib.RunGitCommandWithOutput(folder, "status")
+	status_output := lib.RunGitCommandWithOutput(folder, "status", "--porcelain")
 	if !strings.Contains(status_output, "?? "+txt_file) {
 		t.Errorf("Status command didn't return the expected output")
 	}
@@ -47,7 +47,7 @@ func TestStatus_IgnoreIndexFiles(t *testing.T) {
 	defer file_untracked.Close()
 	file_untracked.Write([]byte("Untracked"))
 	lib.RunGitCommand(folder, "add", txt_file_tracked)
-	status_output := lib.RunGitCommandWithOutput(folder, "status")
+	status_output := lib.RunGitCommandWithOutput(folder, "status", "--porcelain")
 	if !strings.Contains(status_output, "?? "+txt_file_untracked) {
 		t.Errorf("Status command didn't return the expected output: %s should be untracked", txt_file_tracked)
 	}
@@ -82,7 +82,7 @@ func TestStatus_WorkSpaceChange(t *testing.T) {
 
 	//modifying the second file
 	two_txt.WriteString("Modified")
-	status_output := lib.RunGitCommandWithOutput(folder, "status")
+	status_output := lib.RunGitCommandWithOutput(folder, "status", "--porcelain")
 	if !strings.Contains(status_output, "M "+"a/2.txt") {
 		t.Errorf("Status command didn't return the expected output: %s should be modified, got %s", "a/2.txt", status_output)
 	}
@@ -110,7 +110,7 @@ func TestStatus_WorkSpaceChange_FileIsExecutable(t *testing.T) {
 		return
 	}
 
-	status_output := lib.RunGitCommandWithOutput(folder, "status")
+	status_output := lib.RunGitCommandWithOutput(folder, "status", "--porcelain")
 	if !strings.Contains(status_output, "M "+"1.txt") {
 		t.Errorf("Status command didn't return the expected output: %s should be modified, got %s", "1.txt", status_output)
 	}
@@ -134,7 +134,7 @@ func TestStatus_WorkSpaceChange_DoubleSave(t *testing.T) {
 	//write the same content again
 	os.WriteFile(path.Join(folder, "1.txt"), []byte("1"), 0777)
 
-	status_output := lib.RunGitCommandWithOutput(folder, "status")
+	status_output := lib.RunGitCommandWithOutput(folder, "status", "--porcelain")
 	if !strings.Contains(status_output, "M "+"1.txt") {
 		t.Errorf("Status command didn't return the expected output: %s should be modified, got %s", "1.txt", status_output)
 	}
@@ -161,7 +161,7 @@ func TestStatus_DeleteCommitedFile(t *testing.T) {
 		t.Errorf("Can't delete the file on path %s", "1.txt")
 		return
 	}
-	status_output := lib.RunGitCommandWithOutput(folder, "status")
+	status_output := lib.RunGitCommandWithOutput(folder, "status", "--porcelain")
 	if !strings.Contains(status_output, "D "+"1.txt") {
 		t.Errorf("Status command didn't return the expected output: %s should be deleted, got %s", "1.txt", status_output)
 	}
@@ -189,7 +189,7 @@ func TestStatus_AddNewFile(t *testing.T) {
 
 	lib.RunGitCommand(folder, "add", ".")
 
-	status_output := lib.RunGitCommandWithOutput(folder, "status")
+	status_output := lib.RunGitCommandWithOutput(folder, "status", "--porcelain")
 	if !strings.Contains(status_output, "A "+"1.txt") {
 		t.Errorf("Status command didn't return the expected output: %s should be added, got %s", "1.txt", status_output)
 	}
