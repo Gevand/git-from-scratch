@@ -42,7 +42,7 @@ echo "Modified c" > "c.txt"
 chmod +x b/b.txt #making b executable, modifies it
 
 ./geo-git add "d/e/f.txt"
-./geo-git "status"
+./geo-git "status" "--porcelain"
 echo "My Third Commit Message" | ./geo-git "commit"
 
 more .git/HEAD
@@ -52,6 +52,7 @@ echo "g" > "g.txt"
 echo "h" > "h.txt"
 mkdir "empty_folder"
 ./geo-git "add" h.txt g.txt
+./geo-git "status" "--porcelain"
 ./geo-git "status"
 
 ./geo-git "add" "file_that_does_not_exist.txt"

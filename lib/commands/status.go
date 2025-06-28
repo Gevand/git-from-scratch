@@ -5,6 +5,7 @@ import (
 	"geo-git/lib"
 	"geo-git/lib/database"
 	db "geo-git/lib/database"
+	ind "geo-git/lib/index"
 	"geo-git/lib/utils"
 	"os"
 	"path"
@@ -45,28 +46,31 @@ func (st *StatusTracking) Sort() {
 	sort.Strings(st.Untracked)
 }
 
+var statusRepo *lib.Respository
+
 func RunStatus(repo *lib.Respository, cmd *Command) error {
-	err := repo.Index.LoadForUpdate()
+	statusRepo = repo
+	err := statusRepo.Index.LoadForUpdate()
 	if err != nil {
 		return err
 	}
 	statusTracking := &StatusTracking{Untracked: []string{}, Changed: []string{}, IndexChanges: map[string]Status{}, WorkSpaceChanges: map[string]Status{}, Stats: map[string]os.FileInfo{}, HeadTree: map[string]*db.Entry{}}
-	err = scanWorkspace(repo, "", statusTracking)
+	err = scanWorkspace("", statusTracking)
 	if err != nil {
 		return err
 	}
 
-	err = loadHeadTree(repo, "", statusTracking)
+	err = loadHeadTree(statusTracking)
 	if err != nil {
 		return err
 	}
 
-	err = detectChanges(repo, "", statusTracking)
+	err = checkIndexEntries(statusRepo, statusTracking)
 	if err != nil {
 		return err
 	}
 
-	_, err = repo.Index.WriteUpdates()
+	_, err = statusRepo.Index.WriteUpdates()
 	if err != nil {
 		return err
 	}
@@ -85,66 +89,83 @@ func recordChange(statusTracking *StatusTracking, path string, changeMap map[str
 	changeMap[path] = status
 }
 
-func detectChanges(repo *lib.Respository, prefix string, statusTracking *StatusTracking) error {
+func checkIndexEntries(repo *lib.Respository, statusTracking *StatusTracking) error {
 
-	//against head tree -- detectHeadTreeChanges
 	for _, entry := range repo.Index.Entries {
-
-		found_item, ok := statusTracking.HeadTree[entry.Path]
-		if ok && (entry.Mode != uint32(found_item.Mode) || entry.Oid != found_item.Oid) {
-			recordChange(statusTracking, entry.Path, statusTracking.IndexChanges, Modified)
-		} else if !ok {
-			recordChange(statusTracking, entry.Path, statusTracking.IndexChanges, Added)
-		}
-	}
-
-	for path, _ := range statusTracking.HeadTree {
-		if !repo.Index.IsEntryTracked(path) {
-			recordChange(statusTracking, path, statusTracking.IndexChanges, Deleted)
-		}
-	}
-	//against workspace -- detectWorkSpaceChanges
-	for _, entry := range repo.Index.Entries {
-		stat := statusTracking.Stats[entry.Path]
-		if stat == nil {
-			recordChange(statusTracking, entry.Path, statusTracking.WorkSpaceChanges, Deleted)
-			continue
-		} else if !entry.StatMatch(stat) {
-			recordChange(statusTracking, entry.Path, statusTracking.WorkSpaceChanges, Modified)
-			continue
-		} else if !entry.TimesMatch(stat) {
-			recordChange(statusTracking, entry.Path, statusTracking.WorkSpaceChanges, Modified)
-			continue
-		}
-		data, err := repo.Workspace.ReadFile(entry.Path)
+		err := checkIndexAgainstWorkSpace(entry, statusTracking)
 		if err != nil {
 			return err
 		}
-		blob := database.NewBlob(data)
-		oid := blob.HashObject()
-		if entry.Oid == oid {
-			repo.Index.UpdateEntryStat(entry, stat)
-		} else {
-			recordChange(statusTracking, entry.Path, statusTracking.WorkSpaceChanges, Modified)
-			continue
+
+		err = checkIndexAgainstHeadTree(entry, statusTracking)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func scanWorkspace(repo *lib.Respository, prefix string, statusTracking *StatusTracking) error {
-	files, err := repo.Workspace.ListDirs(prefix)
+func checkIndexAgainstWorkSpace(entry *ind.IndexEntry, statusTracking *StatusTracking) error {
+
+	stat := statusTracking.Stats[entry.Path]
+	if stat == nil {
+		recordChange(statusTracking, entry.Path, statusTracking.WorkSpaceChanges, Deleted)
+		return nil
+	} else if !entry.StatMatch(stat) {
+		recordChange(statusTracking, entry.Path, statusTracking.WorkSpaceChanges, Modified)
+		return nil
+
+	} else if !entry.TimesMatch(stat) {
+		recordChange(statusTracking, entry.Path, statusTracking.WorkSpaceChanges, Modified)
+		return nil
+	}
+	data, err := statusRepo.Workspace.ReadFile(entry.Path)
+	if err != nil {
+		return err
+	}
+	blob := database.NewBlob(data)
+	oid := blob.HashObject()
+	if entry.Oid == oid {
+		statusRepo.Index.UpdateEntryStat(entry, stat)
+	} else {
+		recordChange(statusTracking, entry.Path, statusTracking.WorkSpaceChanges, Modified)
+		return nil
+	}
+
+	return nil
+}
+
+func checkIndexAgainstHeadTree(entry *ind.IndexEntry, statusTracking *StatusTracking) error {
+
+	found_item, ok := statusTracking.HeadTree[entry.Path]
+	if ok && (entry.Mode != uint32(found_item.Mode) || entry.Oid != found_item.Oid) {
+		recordChange(statusTracking, entry.Path, statusTracking.IndexChanges, Modified)
+	} else if !ok {
+		recordChange(statusTracking, entry.Path, statusTracking.IndexChanges, Added)
+	}
+
+	for path, _ := range statusTracking.HeadTree {
+		if !statusRepo.Index.IsEntryTracked(path) {
+			recordChange(statusTracking, path, statusTracking.IndexChanges, Deleted)
+		}
+	}
+
+	return nil
+}
+
+func scanWorkspace(prefix string, statusTracking *StatusTracking) error {
+	files, err := statusRepo.Workspace.ListDirs(prefix)
 	if err != nil {
 		return err
 	}
 	for file, fileInfo := range files {
-		trackable, err := trackableFile(repo, file, fileInfo)
+		trackable, err := trackableFile(file, fileInfo)
 		if err != nil {
 			return err
 		}
-		if repo.Index.IsEntryTracked(file) {
+		if statusRepo.Index.IsEntryTracked(file) {
 			if fileInfo.IsDir() {
-				err := scanWorkspace(repo, file, statusTracking)
+				err := scanWorkspace(file, statusTracking)
 				if err != nil {
 					return err
 				}
@@ -161,20 +182,20 @@ func scanWorkspace(repo *lib.Respository, prefix string, statusTracking *StatusT
 	return nil
 }
 
-func trackableFile(repo *lib.Respository, filepath string, stat os.FileInfo) (bool, error) {
+func trackableFile(filepath string, stat os.FileInfo) (bool, error) {
 	if stat == nil {
 		return false, nil
 	}
 	if !stat.IsDir() {
-		return !repo.Index.IsEntryTracked(filepath), nil
+		return !statusRepo.Index.IsEntryTracked(filepath), nil
 	} else {
 		//depth first search
-		items, err := repo.Workspace.ListDirs(filepath)
+		items, err := statusRepo.Workspace.ListDirs(filepath)
 		if err != nil {
 			return false, err
 		}
 		for item_path, item_info := range items {
-			trackable, err := trackableFile(repo, item_path, item_info)
+			trackable, err := trackableFile(item_path, item_info)
 			if err != nil {
 				return false, err
 			}
@@ -214,7 +235,7 @@ func printChanges(message string, changes map[string]Status) {
 	fmt.Println(message)
 	fmt.Println("")
 	for path, status := range changes {
-		fmt.Printf("%s %s\n", path, LongStatusMap[status])
+		fmt.Printf("%s %s\n", LongStatusMap[status], path)
 
 	}
 }
@@ -259,8 +280,8 @@ func statusForPath(path string, statusTracking *StatusTracking) string {
 	return left + right
 }
 
-func loadHeadTree(repo *lib.Respository, filepath string, statusTracking *StatusTracking) error {
-	headOid, err := repo.Refs.ReadHead()
+func loadHeadTree(statusTracking *StatusTracking) error {
+	headOid, err := statusRepo.Refs.ReadHead()
 	if err != nil {
 		return err
 	}
@@ -268,16 +289,16 @@ func loadHeadTree(repo *lib.Respository, filepath string, statusTracking *Status
 		return nil
 	}
 
-	err = repo.Database.Load(headOid)
+	err = statusRepo.Database.Load(headOid)
 	if err != nil {
 		return err
 	}
-	blob_commit := repo.Database.Objects[headOid]
+	blob_commit := statusRepo.Database.Objects[headOid]
 	commit, err := db.ParseCommitFromBlob(blob_commit)
 	if err != nil {
 		return err
 	}
-	readTree(repo, commit.Tree_Oid, "", statusTracking)
+	readTree(statusRepo, commit.Tree_Oid, "", statusTracking)
 	return nil
 
 }
