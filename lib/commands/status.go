@@ -21,6 +21,12 @@ const (
 	Added
 )
 
+var ColorMap = map[string]string{
+	"green": "\033[32m",
+	"red":   "\033[31m",
+	"reset": "\033[0m",
+}
+
 var ShortStatusMap = map[Status]string{
 	Deleted:  "D",
 	Modified: "M",
@@ -259,9 +265,9 @@ func trackableFile(filepath string, stat os.FileInfo) (bool, error) {
 }
 
 func printResultsLongs(statusTracking *StatusTracking) {
-	printChanges("Changes to be committed", statusTracking.IndexChanges)
-	printChanges("Changes not staged for commit", statusTracking.WorkSpaceChanges)
-	printUntrackedChanges("Untracked files", statusTracking.Untracked)
+	printChanges("Changes to be committed", statusTracking.IndexChanges, "green")
+	printChanges("Changes not staged for commit", statusTracking.WorkSpaceChanges, "red")
+	printUntrackedChanges("Untracked files", statusTracking.Untracked, "red")
 	printCommitStatus(statusTracking)
 }
 
@@ -279,25 +285,37 @@ func printCommitStatus(statusTracking *StatusTracking) {
 	}
 }
 
-func printChanges(message string, changes map[string]Status) {
+func printChanges(message string, changes map[string]Status, color string) {
 	if len(changes) == 0 {
 		return
 	}
 	fmt.Println(message)
 	fmt.Println("")
+	color_code, ok := ColorMap[color]
+	reset := ColorMap["reset"]
 	for path, status := range changes {
-		fmt.Printf("%s %s\n", LongStatusMap[status], path)
+		if ok {
+			fmt.Printf("%s%s %s\n%s", color_code, LongStatusMap[status], path, reset)
+		} else {
+			fmt.Printf("%s %s\n", LongStatusMap[status], path)
+		}
 	}
 	fmt.Println("")
 }
-func printUntrackedChanges(message string, changes []string) {
+func printUntrackedChanges(message string, changes []string, color string) {
 	if len(changes) == 0 {
 		return
 	}
 	fmt.Println(message)
 	fmt.Println("")
+	color_code, ok := ColorMap[color]
+	reset := ColorMap["reset"]
 	for _, path := range changes {
-		fmt.Printf("%s\n", path)
+		if ok {
+			fmt.Printf("%s%s\n%s", color_code, path, reset)
+		} else {
+			fmt.Printf("%s\n", path)
+		}
 	}
 	fmt.Println("")
 }
