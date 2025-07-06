@@ -33,7 +33,6 @@ func (d *Database) Load(oid string) error {
 }
 
 func (d *Database) ReadObject(oid string) (*Blob, error) {
-	fmt.Println("Working on ", oid)
 	objectPath := d.ObjectPath(oid)
 	objectRawText, err := os.ReadFile(objectPath)
 	if err != nil {

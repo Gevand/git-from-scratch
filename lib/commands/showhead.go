@@ -25,7 +25,6 @@ func RunShowHead(repo *lib.Respository) error {
 }
 
 func showTree(repo *lib.Respository, oid string, prefix string) error {
-	fmt.Println("DEBUG 0 workign on", oid)
 	if oid == "" {
 		return nil
 	}

@@ -1,10 +1,11 @@
 package database
 
 import (
+	"bufio"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"geo-git/lib/utils"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -79,19 +80,6 @@ func (t *Tree) ToString() string {
 	return strings.TrimSpace(return_value)
 }
 
-/*
-def self.parse(scanner)
-entries = {}
-until scanner.eos?
-mode = scanner.scan_until(/ /).strip.to_i(8)
-name = scanner.scan_until(/\0/)[0..-2]
-oid = scanner.peek(20).unpack("H40").first
-scanner.pos += 20
-entries[name] = Entry.new(oid, mode)
-end
-Tree.new(entries)
-end
-*/
 func ParseTreeFromBlob(blob *Blob) (*Tree, error) {
 	treeToReturn := &Tree{Entries: map[string]interface{}{}}
 	blob_data := string(blob.Data)
@@ -99,70 +87,48 @@ func ParseTreeFromBlob(blob *Blob) (*Tree, error) {
 	blob_prefix := (strings.Split(blob_data, "\000")[0]) + "\000"
 	blob_data = strings.Replace(blob_data, blob_prefix, "", 1)
 	//starts the parsing process
-	entry_parts := strings.Split(blob_data, "\000")
-
-	entry_name := ""
-	entry_mode := ""
-	var last_entry interface{}
-	fmt.Println("DEBUG - ENTRY PARTS", entry_parts)
-	for index, entry_part := range entry_parts {
-		fmt.Println("Prasing index", index, "part", entry_part)
-		if index == 0 {
-			//first entry is always "%v %v"
-			temp_split := strings.Split(entry_part, " ")
-			if len(temp_split) != 2 {
-				return nil, errors.New("blob is not formatted as a proper tree")
+	reader := bufio.NewReader(strings.NewReader(blob_data))
+	for {
+		mode_bytes, err := reader.ReadBytes(' ')
+		if err != nil {
+			if err == io.EOF {
+				break
 			}
-			entry_mode = temp_split[0]
-			entry_name = temp_split[1]
-			fmt.Println("PARSING ENTRY MODE")
-			if entry_mode == fmt.Sprintf("%06o", DIRECTORY_MODE) {
-				last_entry = &Tree{Name: entry_name, Entries: map[string]interface{}{}}
-			} else {
-
-				mode, err := strconv.ParseUint(entry_mode, 8, 32)
-				if err != nil {
-					return nil, err
-				}
-				last_entry = &Entry{Name: entry_name, Mode: os.FileMode(uint32(mode))}
-			}
-			treeToReturn.Entries[entry_name] = last_entry
-		} else if index == len(entry_parts)-1 {
-			//last entry is always "%s"
-			previous_oid := hex.EncodeToString([]byte(entry_part))
-			switch entry := last_entry.(type) {
-			case *Entry:
-				entry.Oid = previous_oid
-			case *Tree:
-				entry.Oid = previous_oid
-			}
-		} else {
-			//everything else is "%s%v %v"
-			previous_oid := hex.EncodeToString([]byte(entry_part)[0:20])
-			switch entry := last_entry.(type) {
-			case *Entry:
-				entry.Oid = previous_oid
-			case *Tree:
-				entry.Oid = previous_oid
-			}
-			temp_split := strings.Split(entry_part[20:], " ")
-			if len(temp_split) != 2 {
-				return nil, errors.New("blob is not formatted as a proper tree")
-			}
-			entry_mode = temp_split[0]
-			entry_name = temp_split[1]
-			if entry_mode == fmt.Sprintf("%06o", DIRECTORY_MODE) {
-				last_entry = &Tree{Name: entry_name, Entries: map[string]interface{}{}}
-			} else {
-
-				mode, err := strconv.ParseUint(entry_mode, 8, 32)
-				if err != nil {
-					return nil, err
-				}
-				last_entry = &Entry{Name: entry_name, Mode: os.FileMode(uint32(mode))}
-			}
-			treeToReturn.Entries[entry_name] = last_entry
+			return nil, err
 		}
+		mode_bytes = mode_bytes[:len(mode_bytes)-1] // git rid of the ' ' byte at the end
+
+		name_bytes, err := reader.ReadBytes('\000')
+		if err != nil {
+			return nil, err
+		}
+		name_bytes = name_bytes[:len(name_bytes)-1] //get rid of the 0 byte at the end
+
+		oid_bytes, err := reader.Peek(20)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = reader.Discard(20)
+		if err != nil {
+			return nil, err
+		}
+
+		var last_entry interface{}
+		mode := string(mode_bytes)
+		name := string(name_bytes)
+		oid := hex.EncodeToString(oid_bytes)
+		if mode == fmt.Sprintf("%06o", DIRECTORY_MODE) {
+			last_entry = &Tree{Name: name, Entries: map[string]interface{}{}, Oid: oid}
+		} else {
+			mode, err := strconv.ParseUint(mode, 8, 32)
+			if err != nil {
+				return nil, err
+			}
+			last_entry = &Entry{Name: name, Mode: os.FileMode(uint32(mode)), Oid: oid}
+		}
+		treeToReturn.Entries[name] = last_entry
 	}
+
 	return treeToReturn, nil
 }

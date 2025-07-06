@@ -106,7 +106,6 @@ func checkIndexEntries(repo *lib.Respository, statusTracking *StatusTracking) er
 }
 
 func checkIndexAgainstWorkSpace(entry *ind.IndexEntry, statusTracking *StatusTracking) error {
-
 	stat := statusTracking.Stats[entry.Path]
 	if stat == nil {
 		recordChange(statusTracking, entry.Path, statusTracking.WorkSpaceChanges, Deleted)
@@ -136,12 +135,13 @@ func checkIndexAgainstWorkSpace(entry *ind.IndexEntry, statusTracking *StatusTra
 }
 
 func checkIndexAgainstHeadTree(entry *ind.IndexEntry, statusTracking *StatusTracking) error {
-
 	found_item, ok := statusTracking.HeadTree[entry.Path]
 	if ok && found_item != nil {
-		recordChange(statusTracking, entry.Path, statusTracking.IndexChanges, Modified)
+		if found_item.Mode != os.FileMode(entry.Mode) || found_item.Oid != entry.Oid {
+			recordChange(statusTracking, entry.Path, statusTracking.IndexChanges, Modified)
+		}
 	} else if !ok {
-		fmt.Println("Not found", entry.Path, "in", statusTracking.HeadTree)
+		fmt.Println("DEBUG", entry.Path, " added because not found in head tree")
 		recordChange(statusTracking, entry.Path, statusTracking.IndexChanges, Added)
 	}
 
@@ -220,10 +220,9 @@ func readTree(oid string, prefix string, statusTracking *StatusTracking) error {
 
 	for key, entry := range tree.Entries {
 		path := path.Join(prefix, key)
-		fmt.Println("WOrking on ", path)
 		switch temp_entry := entry.(type) {
 		case *db.Tree:
-			err := showTree(statusRepo, temp_entry.Oid, path)
+			err := readTree(temp_entry.Oid, path, statusTracking)
 			if err != nil {
 				return err
 			}
@@ -231,7 +230,6 @@ func readTree(oid string, prefix string, statusTracking *StatusTracking) error {
 			statusTracking.HeadTree[path] = temp_entry
 		}
 	}
-	fmt.Println("DEBUG", statusTracking.HeadTree)
 	return nil
 }
 
