@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"geo-git/lib"
-	"geo-git/lib/database"
 	db "geo-git/lib/database"
 	ind "geo-git/lib/index"
 	"geo-git/lib/utils"
@@ -128,7 +127,7 @@ func checkIndexAgainstWorkSpace(entry *ind.IndexEntry, statusTracking *StatusTra
 	if err != nil {
 		return err
 	}
-	blob := database.NewBlob(data)
+	blob := db.NewBlob(data)
 	oid := blob.HashObject()
 	if entry.Oid == oid {
 		statusRepo.Index.UpdateEntryStat(entry, stat)
@@ -295,7 +294,7 @@ func printChanges(message string, changes map[string]Status, color string) {
 	reset := ColorMap["reset"]
 	for path, status := range changes {
 		if ok {
-			fmt.Printf("%s%s %s\n%s", color_code, LongStatusMap[status], path, reset)
+			fmt.Printf("\t\t%s%s %s\n%s", color_code, LongStatusMap[status], path, reset)
 		} else {
 			fmt.Printf("%s %s\n", LongStatusMap[status], path)
 		}
@@ -312,9 +311,9 @@ func printUntrackedChanges(message string, changes []string, color string) {
 	reset := ColorMap["reset"]
 	for _, path := range changes {
 		if ok {
-			fmt.Printf("%s%s\n%s", color_code, path, reset)
+			fmt.Printf("\t\t%s%s\n%s", color_code, path, reset)
 		} else {
-			fmt.Printf("%s\n", path)
+			fmt.Printf("\t\t%s\n", path)
 		}
 	}
 	fmt.Println("")
