@@ -152,3 +152,6 @@ func generateTempName() string {
 	}
 	return "temp_obj_" + string(b)
 }
+func (d *Database) ShortOid(oid string) string {
+	return oid[:6]
+}

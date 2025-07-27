@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"geo-git/lib"
 	"os"
@@ -30,18 +29,16 @@ func (c *Command) Execute(name string) error {
 		err = RunInit(repo, c)
 	case "commit":
 		err = RunCommit(repo, c)
-		break
 	case "add":
 		err = RunAdd(repo, c)
-		break
 	case "status":
 		err = RunStatus(repo, c)
-		break
 	case "showhead":
 		err = RunShowHead(repo)
-		break
+	case "diff":
+		err = RunDiff(repo, c)
 	default:
-		return errors.New(fmt.Sprintf("%s is an unknown command.", name))
+		return fmt.Errorf("%s is an unknown command.", name)
 	}
 	return err
 }

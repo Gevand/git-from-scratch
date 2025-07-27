@@ -241,3 +241,13 @@ func (i *Index) UpdateEntryStat(entry *ind.IndexEntry, stat os.FileInfo) {
 	entry.UpdateStat(stat)
 	i.changed = true
 }
+
+func (i *Index) EntryForPath(path string) (*ind.IndexEntry, error) {
+
+	entry, ok := i.Entries[path]
+	if ok {
+		return entry, nil
+	} else {
+		return nil, errors.New("no entry found")
+	}
+}
