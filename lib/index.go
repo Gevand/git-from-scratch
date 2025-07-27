@@ -167,7 +167,6 @@ func (i *Index) LoadForUpdate() error {
 }
 
 func (i *Index) Load() error {
-
 	index_file, err := os.Open(i.path)
 	defer index_file.Close()
 	if err != nil {

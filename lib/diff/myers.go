@@ -1,7 +1,6 @@
 package diff
 
 import (
-	"fmt"
 	"geo-git/lib"
 	"geo-git/lib/utils"
 	"slices"
@@ -56,7 +55,6 @@ func (md *MyersDiff) backTrack() []backTrack {
 	if shortest_edit == nil {
 		return backTracks
 	}
-	fmt.Println(shortest_edit)
 	for d := len(shortest_edit) - 1; d >= 0; d-- {
 		v := shortest_edit[d]
 		k := x - y

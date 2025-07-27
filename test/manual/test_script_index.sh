@@ -24,10 +24,12 @@ echo "a" > "a.txt"
 ./geo-git add "a.txt"
 echo "a added" | ./geo-git "commit"
 
+echo "a" >> "a.txt"
 echo "b" > "b.txt"
 echo "untracked" > "untracked.txt"
 ./geo-git add "b.txt"
-./geo-git status
+./geo-git status 
+./geo-git status --porcelain
 
 
 tree .git
