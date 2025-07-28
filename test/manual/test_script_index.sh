@@ -21,15 +21,18 @@ rm -rf ".git"
 ./geo-git "init"
 
 echo "a" > "a.txt"
-./geo-git add "a.txt"
-echo "a added" | ./geo-git "commit"
+echo "tbd" > "tbd.txt"
+./geo-git add "a.txt" "tbd.txt"
+echo "a and tbd added" | ./geo-git "commit"
 
+rm "tbd.txt"
 echo "a" >> "a.txt"
 echo "b" > "b.txt"
 echo "untracked" > "untracked.txt"
 ./geo-git add "b.txt"
 ./geo-git status 
 ./geo-git status --porcelain
+./geo-git diff 
 
 
 tree .git
