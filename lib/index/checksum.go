@@ -42,7 +42,8 @@ func (c *Checksum) Verify() error {
 	if err != nil {
 		return err
 	}
-	if !bytes.Equal(sum, c.Digest.Sum(nil)) {
+	digest := c.Digest.Sum(nil)
+	if !bytes.Equal(sum, digest) {
 		return errors.New("Checksum does not match value stored on disk")
 	}
 	return nil

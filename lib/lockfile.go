@@ -5,9 +5,9 @@ import (
 	"os"
 )
 
-var MissingParent = errors.New("missing parent")
-var NoPermission = errors.New("no permissions")
-var StaleLock = errors.New("stale lock")
+var ErrMissingParent = errors.New("missing parent")
+var ErrNoPermission = errors.New("no permissions")
+var ErrStaleLock = errors.New("stale lock")
 
 type LockFile struct {
 	FilePath string
@@ -35,7 +35,7 @@ func (l *LockFile) Write(data []byte) error {
 		_, err := l.Lock.Write(data)
 		return err
 	}
-	return errors.New("File needs to be locked before writing to it")
+	return errors.New("file needs to be locked before writing to it")
 }
 
 func (l *LockFile) Commit() error {
@@ -48,6 +48,6 @@ func (l *LockFile) Commit() error {
 		l.Lock = nil
 		return err
 	}
-	return errors.New("File needs to be locked before commiting it to disc")
+	return errors.New("file needs to be locked before commiting it to disc")
 
 }

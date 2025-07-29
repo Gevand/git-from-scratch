@@ -30,7 +30,7 @@ func RunCommit(repo *lib.Respository, cmd *Command) error {
 	}
 	author := db.NewAuthor(name, email, time.Now())
 	reader := bufio.NewReader(os.Stdin)
-	message, err := reader.ReadString('\n')
+	message, _ := reader.ReadString('\n')
 	if message == "" {
 		fmt.Fprintf(os.Stderr, "commit failed, %v \r\n", "need a commit message")
 	}
@@ -66,6 +66,9 @@ func RunCommit(repo *lib.Respository, cmd *Command) error {
 	}
 
 	head_file, err := os.OpenFile(path.Join(repo.GitPath, "HEAD"), os.O_WRONLY|os.O_CREATE, 0777)
+	if err != nil {
+		return err
+	}
 	defer head_file.Close()
 	head_file.Write([]byte(commit.Oid))
 

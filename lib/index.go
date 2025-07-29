@@ -85,6 +85,9 @@ func (i *Index) removeEntry(path string) {
 func (i *Index) StoreEntry(entry *ind.IndexEntry) {
 	i.Entries[entry.Path] = entry
 	i.keys = append(i.keys, entry.Path)
+	//done to get unique keys
+	slices.Sort(i.keys)
+	i.keys = slices.Compact(i.keys)
 
 	for _, dirname := range entry.ParentDirectories() {
 		i.parents[dirname] = append(i.parents[dirname], entry.Path)
@@ -186,7 +189,6 @@ func (i *Index) Load() error {
 	if err != nil {
 		return err
 	}
-
 	return reader.Verify()
 
 }
