@@ -17,25 +17,25 @@ func NewMyersDiff(Diff *lib.Diff) *MyersDiff {
 
 func (md *MyersDiff) DoDiff() {
 	for _, backTrack := range md.backTrack() {
-		var beforeLine string
+		var beforeLine lib.Line
 		if len(md.Diff.LinesBefore) <= backTrack.prev_x {
-			beforeLine = ""
+			beforeLine = lib.GetDummyLine()
 		} else {
 			beforeLine = md.Diff.LinesBefore[backTrack.prev_x]
 		}
-		var afterLine string
+		var afterLine lib.Line
 		if len(md.Diff.LinesAfter) <= backTrack.prev_y {
-			afterLine = ""
+			afterLine = lib.GetDummyLine()
 		} else {
 			afterLine = md.Diff.LinesAfter[backTrack.prev_y]
 		}
 
 		if backTrack.x == backTrack.prev_x {
-			md.Diff.Edits = append(md.Diff.Edits, lib.NewEdit(lib.Ins, afterLine))
+			md.Diff.Edits = append(md.Diff.Edits, *lib.NewEdit(lib.Ins, lib.GetDummyLine(), afterLine))
 		} else if backTrack.y == backTrack.prev_y {
-			md.Diff.Edits = append(md.Diff.Edits, lib.NewEdit(lib.Del, beforeLine))
+			md.Diff.Edits = append(md.Diff.Edits, *lib.NewEdit(lib.Del, beforeLine, lib.GetDummyLine()))
 		} else {
-			md.Diff.Edits = append(md.Diff.Edits, lib.NewEdit(lib.Eql, beforeLine))
+			md.Diff.Edits = append(md.Diff.Edits, *lib.NewEdit(lib.Eql, beforeLine, afterLine))
 		}
 	}
 	slices.Reverse(md.Diff.Edits)
@@ -109,7 +109,7 @@ func (md *MyersDiff) shortestEdit() [][]int {
 
 			for {
 
-				if !(x < n && y < m && md.Diff.LinesBefore[x] == md.Diff.LinesAfter[y]) {
+				if !(x < n && y < m && md.Diff.LinesBefore[x].Text == md.Diff.LinesAfter[y].Text) {
 					break
 				}
 				x = x + 1
@@ -122,4 +122,8 @@ func (md *MyersDiff) shortestEdit() [][]int {
 		}
 	}
 	return trace
+}
+
+func (ed *MyersDiff) DiffHunks() []lib.Hunk {
+	return lib.NewHunk(0, 0, ed.Diff.Edits).Filter()
 }

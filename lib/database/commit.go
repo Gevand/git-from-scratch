@@ -32,9 +32,6 @@ func ParseCommitFromBlob(blob *Blob) (*Commit, error) {
 	commitToReturn.Message = strings.Join(lines[1:], "\n\n")
 	//split the rest of them by line
 	lines = strings.Split(lines[0], "\n")
-	//first line should alway start with commit space length\000, lets get rid of it
-	blob_prefix := (strings.Split(lines[0], "\000")[0]) + "\000"
-	lines[0] = strings.Replace(lines[0], blob_prefix, "", 1)
 	author := Author{}
 	for _, line := range lines {
 		if strings.HasPrefix(line, "author") {

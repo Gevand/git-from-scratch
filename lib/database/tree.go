@@ -83,9 +83,6 @@ func (t *Tree) ToString() string {
 func ParseTreeFromBlob(blob *Blob) (*Tree, error) {
 	treeToReturn := &Tree{Entries: map[string]interface{}{}}
 	blob_data := string(blob.Data)
-	//first line of the blob is tree space length\000, get rid of that
-	blob_prefix := (strings.Split(blob_data, "\000")[0]) + "\000"
-	blob_data = strings.Replace(blob_data, blob_prefix, "", 1)
 	//starts the parsing process
 	reader := bufio.NewReader(strings.NewReader(blob_data))
 	for {

@@ -57,7 +57,9 @@ func (d *Database) ReadObject(oid string) (*Blob, error) {
 	objectTypeAndLength := split[0]
 	objectType = strings.Split(objectTypeAndLength, " ")[0]
 	objectData = strings.Replace(string(objectMetaData), objectType+"\000", "", 1)
-	blobToReturn := &Blob{Data: []byte(objectData), Type: objectType}
+	blob_prefix := (strings.Split(objectData, "\000")[0]) + "\000"
+	blob_data := strings.Replace(objectData, blob_prefix, "", 1)
+	blobToReturn := &Blob{Data: []byte(blob_data), Type: objectType}
 	blobToReturn.Oid = blobToReturn.HashObject()
 	return blobToReturn, nil
 }

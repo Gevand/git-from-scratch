@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"geo-git/lib"
 	"geo-git/lib/database"
+	myers "geo-git/lib/diff"
 	"geo-git/lib/index"
 	repostatus "geo-git/lib/repository"
 	"path/filepath"
@@ -14,13 +15,14 @@ type diff struct {
 	path string
 	oid  string
 	mode uint32
+	data []byte
 }
 
 const NULL_OID string = "0000000000000000000000000000000000000000"
 const NULL_PATH string = "/dev/null"
 
 func diffFromNothing(path string) (*diff, error) {
-	return &diff{path: path, oid: NULL_OID, mode: 0}, nil
+	return &diff{path: path, oid: NULL_OID, mode: 0, data: []byte("")}, nil
 }
 func diffFromHead(path string, statusTracking *repostatus.RepositoryStatusTracking) (*diff, error) {
 	entry, ok := statusTracking.HeadTree[path]
@@ -29,7 +31,12 @@ func diffFromHead(path string, statusTracking *repostatus.RepositoryStatusTracki
 	}
 	a_oid := entry.Oid
 	a_mode := index.ModeForStat(uint32(entry.Mode))
-	return &diff{path: path, oid: a_oid, mode: a_mode}, nil
+	err := _repo.Database.Load(entry.Oid)
+	if err != nil {
+		return nil, err
+	}
+	blob := _repo.Database.Objects[entry.Oid]
+	return &diff{path: path, oid: a_oid, mode: a_mode, data: blob.Data}, nil
 }
 func diffFromFile(path string, statusTracking *repostatus.RepositoryStatusTracking) (*diff, error) {
 	blob_data, err := _repo.Workspace.ReadFile(path)
@@ -39,7 +46,7 @@ func diffFromFile(path string, statusTracking *repostatus.RepositoryStatusTracki
 	blob := database.NewBlob(blob_data)
 	b_oid := blob.HashObject()
 	b_mode := index.ModeForStat(uint32(statusTracking.Stats[path].Mode()))
-	return &diff{path: path, oid: b_oid, mode: b_mode}, nil
+	return &diff{path: path, oid: b_oid, mode: b_mode, data: blob.Data}, nil
 }
 func diffFromIndex(path string) (*diff, error) {
 	entry, err := _repo.Index.EntryForPath(path)
@@ -49,7 +56,12 @@ func diffFromIndex(path string) (*diff, error) {
 
 	a_oid := entry.Oid
 	a_mode := index.ModeForStat(entry.Mode)
-	return &diff{path: path, oid: a_oid, mode: a_mode}, nil
+	err = _repo.Database.Load(entry.Oid)
+	if err != nil {
+		return nil, err
+	}
+	blob := _repo.Database.Objects[entry.Oid]
+	return &diff{path: path, oid: a_oid, mode: a_mode, data: blob.Data}, nil
 }
 
 var _repo *lib.Respository
@@ -145,4 +157,23 @@ func printDiffContent(a, b diff) {
 	}
 	fmt.Printf("--- %v\r\n", a.path)
 	fmt.Printf("+++ %v\r\n", b.path)
+
+	myersDiff := myers.NewMyersDiff(lib.NewDiff(string(a.data), string(b.data)))
+	myersDiff.DoDiff()
+	fmt.Println("DEBUG:", myersDiff.Diff.Edits)
+	hunks := myersDiff.DiffHunks()
+	fmt.Println("DEBUG:", hunks)
+	for _, hunk := range hunks {
+		printDiffHunk(hunk)
+	}
+}
+
+func printDiffHunk(hunk lib.Hunk) {
+	fmt.Println(hunk.GenerateHeader())
+	for _, edit := range hunk.Edits {
+		line := edit.ToString()
+		if line != "" {
+			fmt.Println(line)
+		}
+	}
 }
