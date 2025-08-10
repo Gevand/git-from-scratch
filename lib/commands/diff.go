@@ -65,6 +65,7 @@ func diffFromIndex(path string) (*diff, error) {
 }
 
 var _repo *lib.Respository
+var _pager *lib.Pager
 
 func RunDiff(repo *lib.Respository, cmd *Command) error {
 	_repo = repo
@@ -73,11 +74,17 @@ func RunDiff(repo *lib.Respository, cmd *Command) error {
 	if err != nil {
 		return err
 	}
+	_pager = lib.NewPager()
+	_pager.Initialize()
+	//the order is Last in first out so they actually get executed backwards
+	defer _pager.Cmd.Wait()
+	defer _pager.StdIn.Close()
 	if len(cmd.Args) > 0 && cmd.Args[0] == "--cached" {
 		diffHeadIndex(statusTracking)
 	} else {
 		diffIndexWorkSpace(statusTracking)
 	}
+
 	return nil
 }
 func diffHeadIndex(statusTracking *repostatus.RepositoryStatusTracking) error {
@@ -133,17 +140,17 @@ func printDiff(a, b diff) {
 	}
 	a.path = filepath.Join("a", a.path)
 	b.path = filepath.Join("b", b.path)
-	fmt.Printf("diff --git %v %v\r\n", a.path, b.path)
+	fmt.Fprintf(_pager.StdIn, "diff --git %v %v\r\n", a.path, b.path)
 	printDiffMode(a, b)
 	printDiffContent(a, b)
 }
 
 func printDiffMode(a, b diff) {
 	if b.mode == 0 {
-		fmt.Printf("deleted file mode %d", a.mode)
+		fmt.Fprintf(_pager.StdIn, "deleted file mode %d", a.mode)
 	} else {
-		fmt.Printf("old mode %d\n", a.mode)
-		fmt.Printf("new mode %d\n", b.mode)
+		fmt.Fprintf(_pager.StdIn, "old mode %d\n", a.mode)
+		fmt.Fprintf(_pager.StdIn, "new mode %d\n", b.mode)
 	}
 
 }
@@ -151,18 +158,16 @@ func printDiffContent(a, b diff) {
 
 	oid_range := fmt.Sprintf("index %v..%v", _repo.Database.ShortOid(a.oid), _repo.Database.ShortOid(b.oid))
 	if a.mode == b.mode {
-		fmt.Printf("%v %d\r\n", oid_range, a.mode)
+		fmt.Fprintf(_pager.StdIn, "%v %d\r\n", oid_range, a.mode)
 	} else {
-		fmt.Printf("%v\r\n", oid_range)
+		fmt.Fprintf(_pager.StdIn, "%v\r\n", oid_range)
 	}
-	fmt.Printf("--- %v\r\n", a.path)
-	fmt.Printf("+++ %v\r\n", b.path)
+	fmt.Fprintf(_pager.StdIn, "--- %v\r\n", a.path)
+	fmt.Fprintf(_pager.StdIn, "+++ %v\r\n", b.path)
 
 	myersDiff := myers.NewMyersDiff(lib.NewDiff(string(a.data), string(b.data)))
 	myersDiff.DoDiff()
-	fmt.Println("DEBUG:", myersDiff.Diff.Edits)
 	hunks := myersDiff.DiffHunks()
-	fmt.Println("DEBUG:", hunks)
 	for _, hunk := range hunks {
 		printDiffHunk(hunk)
 	}
