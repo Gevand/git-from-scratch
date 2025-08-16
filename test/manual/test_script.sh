@@ -54,11 +54,17 @@ mkdir "empty_folder"
 ./geo-git "add" h.txt g.txt
 ./geo-git "status" "--porcelain"
 ./geo-git "status"
-./geo-git "diff"
 
 ./geo-git "add" "file_that_does_not_exist.txt"
 
 ./geo-git "showhead"
+
+tree .git/refs
+./geo-git "branch" "master"
+tree .git/refs
+
+cat .git/head
+cat .git/refs/heads/master
 
 #tree .git
 #more .git/HEAD

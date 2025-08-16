@@ -37,6 +37,8 @@ func (c *Command) Execute(name string) error {
 		err = RunShowHead(repo)
 	case "diff":
 		err = RunDiff(repo, c)
+	case "branch":
+		err = RunBranch(repo, c)
 	default:
 		return fmt.Errorf("%s is an unknown command", name)
 	}
